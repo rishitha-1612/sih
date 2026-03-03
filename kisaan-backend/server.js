@@ -4,6 +4,10 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const apiRoutes = require('./routes/api');
+const authRoutes = require('./routes/auth');
+const usersRoutes = require('./routes/users');
+const marketRoutes = require('./routes/market');
+const schemesRoutes = require('./routes/schemes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +24,10 @@ if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
 
 // Routes
 app.use('/api', apiRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/market', marketRoutes);
+app.use('/api/schemes', schemesRoutes);
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'KisaanKonnect API is running' });

@@ -59,16 +59,25 @@ router.post('/chat', async (req, res) => {
 
     try {
         // 1. Check if user exists to prevent 500 SQLite Foreign Key crashes
-        const userExists = await new Promise((resolve, reject) => {
-            db.get(`SELECT id FROM users WHERE id = ?`, [user_id], (err, row) => {
+        const userRow = await new Promise((resolve, reject) => {
+            db.get(`SELECT id, language, points_today, last_point_date FROM users WHERE id = ?`, [user_id], (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
             });
         });
 
         let activeUserId = user_id;
+        let pToday = 0;
+        let lastPDate = null;
+        let langPref = 'en';
 
-        if (!userExists) {
+        if (userRow) {
+            pToday = userRow.points_today || 0;
+            lastPDate = userRow.last_point_date;
+            langPref = userRow.language || 'en';
+        }
+
+        if (!userRow) {
             // 2. Automatically create a default demo user if they don't exist
             activeUserId = await new Promise((resolve, reject) => {
                 db.run(
@@ -96,6 +105,7 @@ router.post('/chat', async (req, res) => {
         //  since it works flawlessly with the system we just wired together!)
         const prompt = `You are Kisaan Mitra AI, a helpful, friendly, and highly knowledgeable agricultural expert and assistant for Indian farmers. 
         Always reply in a concise, action-oriented, and easy-to-understand manner.
+        IMPORTANT: The user prefers the language code/name: "${langPref}". Please respond in that language.
         
         Farmer's query: "${message}"`;
 
@@ -112,10 +122,22 @@ router.post('/chat', async (req, res) => {
         // Save bot reply
         db.run(`INSERT INTO chats (user_id, message, is_bot_reply) VALUES (?, ?, 1)`, [activeUserId, botReply]);
 
-        // Add 2 points for asking a question
-        db.run(`UPDATE users SET points = points + 2 WHERE id = ?`, [activeUserId]);
+        // Add points logic (max 20 per day)
+        let pointsEarned = 0;
+        const todayStr = new Date().toISOString().split('T')[0];
 
-        res.json({ reply: botReply, points_earned: 2 });
+        if (lastPDate !== todayStr) {
+            pToday = 0;
+        }
+
+        if (pToday < 20) {
+            let ptsToAdd = Math.min(20, 20 - pToday); // Earn +20 per question, max 20 per day
+            pointsEarned = ptsToAdd;
+            pToday += ptsToAdd;
+            db.run(`UPDATE users SET points = points + ?, points_today = ?, last_point_date = ? WHERE id = ?`, [pointsEarned, pToday, todayStr, activeUserId]);
+        }
+
+        res.json({ reply: botReply, points_earned: pointsEarned });
     } catch (error) {
         console.error('Gemini API Error:', error);
         // Extract inner error message if present
@@ -215,21 +237,34 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
         textResult = textResult.replace(/```json/g, '').replace(/```/g, ''); // Clean markdown formatting
         const parsedData = JSON.parse(textResult);
 
+        const todayStr = new Date().toISOString().split('T')[0];
+        let pointsEarned = 0;
+
+        // Wait to get counts of scans today to grant 10 points properly
+        const scanCountToday = await new Promise((resolve) => {
+            db.get(`SELECT COUNT(*) as c FROM scans WHERE user_id = ? AND date(timestamp) = ?`, [activeUserId, todayStr], (err, row) => {
+                if (err) return resolve(0);
+                resolve(row ? row.c : 0);
+            });
+        });
+
         // Save scan result
         db.run(
             `INSERT INTO scans (user_id, image_url, disease_predicted, confidence, treatment) VALUES (?, ?, ?, ?, ?)`,
             [activeUserId, imageUrl, parsedData.diseasePredicted, parsedData.confidence, parsedData.treatment]
         );
 
-        // Add 5 points for scanning
-        db.run(`UPDATE users SET points = points + 5 WHERE id = ?`, [activeUserId]);
+        if (scanCountToday < 1) { // They get exactly 10 points for the first scan today (up to max 10 pts per day limit)
+            pointsEarned = 10;
+            db.run(`UPDATE users SET points = points + 10 WHERE id = ?`, [activeUserId]);
+        }
 
         res.json({
             diseasePredicted: parsedData.diseasePredicted,
             confidence: parsedData.confidence,
             treatment: parsedData.treatment,
             imageUrl,
-            points_earned: 5
+            points_earned: pointsEarned
         });
 
     } catch (error) {

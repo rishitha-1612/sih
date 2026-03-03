@@ -19,8 +19,10 @@ export const useStore = create(
     persist(
         (set, get) => ({
             user: null,
+            token: null,
             setUser: (user) => set({ user }),
-            clearUser: () => set({ user: null, chats: [], scans: [], points: 0 }),
+            setToken: (token) => set({ token }),
+            clearUser: () => set({ user: null, token: null, chats: [], scans: [], points: 0 }),
 
             weather: null,
             setWeather: (weather) => set({ weather }),

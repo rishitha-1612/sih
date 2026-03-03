@@ -1,22 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, MapPin, Search } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Market() {
     const user = useStore(state => state.user);
     const [searchQuery, setSearchQuery] = useState('');
+    const [prices, setPrices] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const mockPrices = [
-        { id: 1, crop: 'Cotton', mandi: 'Khamgaon AMPC', price: '₹7,150/q', trend: 'up', change: '+₹120' },
-        { id: 2, crop: 'Cotton', mandi: 'Akola AMPC', price: '₹7,080/q', trend: 'down', change: '-₹40' },
-        { id: 3, crop: 'Soybean', mandi: 'Washim AMPC', price: '₹4,400/q', trend: 'up', change: '+₹50' },
-        { id: 4, crop: 'Wheat', mandi: 'Nagpur AMPC', price: '₹2,250/q', trend: 'up', change: '+₹20' },
-        { id: 5, crop: 'Rice', mandi: 'Bhandara AMPC', price: '₹3,100/q', trend: 'up', change: '+₹80' },
-        { id: 6, crop: 'Sugarcane', mandi: 'Pune AMPC', price: '₹3,200/t', trend: 'down', change: '-₹10' },
-        { id: 7, crop: 'Onion', mandi: 'Lasalgaon AMPC', price: '₹1,500/q', trend: 'down', change: '-₹200' },
-    ];
+    useEffect(() => {
+        const fetchMarket = async () => {
+            try {
+                const res = await fetch(`http://localhost:5000/api/market?crop=${user?.crop}&location=${user?.location}`);
+                const data = await res.json();
+                setPrices(data);
+            } catch (error) {
+                console.error("Failed to fetch market rates", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const filteredPrices = mockPrices.filter(item =>
+        if (user) fetchMarket();
+    }, [user]);
+
+    const filteredPrices = prices.filter(item =>
         item.crop.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -44,35 +52,51 @@ export default function Market() {
                 <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                     <h2 className="font-semibold text-gray-800 dark:text-gray-200">Today's Mandi Rates</h2>
                 </div>
-                <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {filteredPrices.length > 0 ? (
-                        filteredPrices.map((item) => (
-                            <li key={item.id} className="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <div>
-                                    <h3 className="font-bold text-gray-900 dark:text-white">{item.crop}</h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.mandi}</p>
+
+                {loading ? (
+                    <div className="p-8 text-center">
+                        <div className="animate-pulse flex flex-col space-y-4">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex justify-between">
+                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-lg text-gray-900 dark:text-white">{item.price}</p>
-                                    <div className={`flex items-center justify-end text-xs font-medium ${item.trend === 'up' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                        {item.trend === 'up' ? <TrendingUp size={14} className="mr-1" /> : <TrendingDown size={14} className="mr-1" />}
-                                        {item.change}
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {filteredPrices.length > 0 ? (
+                            filteredPrices.map((item) => (
+                                <li key={item.id} className="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 dark:text-white">{item.crop}</h3>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{item.mandi}</p>
                                     </div>
-                                </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-lg text-gray-900 dark:text-white">{item.price}</p>
+                                        <div className={`flex items-center justify-end text-xs font-medium ${item.trend === 'up' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                            {item.trend === 'up' ? <TrendingUp size={14} className="mr-1" /> : <TrendingDown size={14} className="mr-1" />}
+                                            {item.change}
+                                        </div>
+                                    </div>
+                                </li>
+                            ))
+                        ) : (
+                            <li className="p-8 text-center text-gray-500 dark:text-gray-400">
+                                No matching crops found.
                             </li>
-                        ))
-                    ) : (
-                        <li className="p-8 text-center text-gray-500 dark:text-gray-400">
-                            No matching crops found.
-                        </li>
-                    )}
-                </ul>
+                        )}
+                    </ul>
+                )}
             </div>
 
-            <div className="mt-6 bg-kisaan-50 dark:bg-kisaan-900/40 p-4 rounded-xl border border-kisaan-100 dark:border-kisaan-800">
-                <h3 className="text-sm font-semibold text-kisaan-800 dark:text-kisaan-300">💡 Smart Selling Tip</h3>
-                <p className="text-xs text-kisaan-700 dark:text-kisaan-400 mt-2">Prices in Khamgaon are expected to rise further by weekend. Hold selling if possible.</p>
-            </div>
+            {prices.length > 0 && prices[0].trend === 'up' && (
+                <div className="mt-6 bg-kisaan-50 dark:bg-kisaan-900/40 p-4 rounded-xl border border-kisaan-100 dark:border-kisaan-800 transition-transform hover:-translate-y-1">
+                    <h3 className="text-sm font-semibold text-kisaan-800 dark:text-kisaan-300">💡 Smart Selling Tip</h3>
+                    <p className="text-xs text-kisaan-700 dark:text-kisaan-400 mt-2">Prices for your {prices[0].crop} are trending up today in {prices[0].mandi}. Consider selling a portion now to lock in gains.</p>
+                </div>
+            )}
         </div>
     );
 }

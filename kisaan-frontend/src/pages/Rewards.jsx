@@ -8,16 +8,16 @@ export default function Rewards() {
     const [redeemedItems, setRedeemedItems] = useState([]);
 
     const rewards = [
-        { icon: <Award className="text-amber-500" size={24} />, title: "Ask Kisaan AI", pts: "+2 pts" },
+        { icon: <Award className="text-amber-500" size={24} />, title: "Ask Kisaan AI", pts: "+20 pts" },
         { icon: <Zap className="text-blue-500" size={24} />, title: "Daily Login", pts: "+1 pt" },
-        { icon: <Award className="text-green-500" size={24} />, title: "Crop Scan", pts: "+5 pts" },
+        { icon: <Award className="text-green-500" size={24} />, title: "Crop Scan", pts: "+10 pts" },
     ]
 
     const catalog = [
-        { id: 1, name: "Urea Fertilizer (10kg)", price: 300, pointsReq: 20 },
-        { id: 2, name: "Hybrid Tomato Seeds", price: 150, pointsReq: 10 },
-        { id: 3, name: "Organic Neem Oil (500ml)", price: 450, pointsReq: 30 },
-        { id: 4, name: "Hand Trowel & Pruner", price: 800, pointsReq: 50 },
+        { id: 1, name: "Urea Fertilizer (10kg)", price: 300, pointsReq: 200 },
+        { id: 2, name: "Hybrid Tomato Seeds", price: 150, pointsReq: 100 },
+        { id: 3, name: "Organic Neem Oil (500ml)", price: 450, pointsReq: 300 },
+        { id: 4, name: "Hand Trowel & Pruner", price: 800, pointsReq: 500 },
     ];
 
     const getDiscountedPrice = (price) => {

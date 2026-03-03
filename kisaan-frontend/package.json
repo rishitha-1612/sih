@@ -12,10 +12,13 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
     "axios": "^1.13.6",
+    "gsap": "^3.14.2",
+    "leaflet": "^1.9.4",
     "localforage": "^1.10.0",
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.13.1",
     "vite-plugin-pwa": "^0.19.8",
     "zustand": "^5.0.11"

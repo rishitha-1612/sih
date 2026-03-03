@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Mic, Send, Bot, MicOff, Loader2, Camera, Image as ImageIcon } from 'lucide-react';
+import { Mic, Send, Bot, MicOff, Loader2, Camera, Image as ImageIcon, Globe } from 'lucide-react';
 
 export default function Chat() {
-    const { chats, addChat, addPoints, user } = useStore();
+    const { chats, addChat, addPoints, user, setUser } = useStore();
     const [input, setInput] = useState('');
     const [isListening, setIsListening] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -22,6 +22,26 @@ export default function Chat() {
     useEffect(() => {
         scrollToBottom();
     }, [chats, isLoading]);
+
+    // Handle Language Change
+    const handleLanguageChange = async (e) => {
+        const newLang = e.target.value;
+        try {
+            const res = await fetch('http://localhost:5000/api/users/language', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user?.userId || user?.id, language: newLang })
+            });
+            if (res.ok) {
+                setUser({ ...user, language: newLang });
+                addChat({ id: Date.now(), text: `Language changed to ${newLang}. I will reply in this language now!`, isBot: true });
+            } else {
+                alert('Failed to update language');
+            }
+        } catch (err) {
+            console.error('Error updating language', err);
+        }
+    };
 
     // Initialize Web Speech API
     useEffect(() => {
@@ -110,7 +130,7 @@ export default function Chat() {
             if (imageFile) {
                 // Handle Image Upload Scan
                 const formData = new FormData();
-                formData.append('user_id', user?.user_id || 1);
+                formData.append('user_id', user?.user_id || user?.id || 1);
                 formData.append('image', imageFile);
 
                 const response = await fetch('http://localhost:5000/api/upload-image', {
@@ -135,7 +155,7 @@ export default function Chat() {
             } else {
                 // Regular Text/Voice Chat
                 const payload = {
-                    user_id: user?.user_id || 1,
+                    user_id: user?.user_id || user?.id || 1,
                     message: userText
                 };
 
@@ -187,13 +207,33 @@ export default function Chat() {
     return (
         <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
             {/* Header Area */}
-            <header className="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm flex items-center shrink-0">
-                <div className="w-10 h-10 rounded-full bg-kisaan-100 flex items-center justify-center mr-3">
-                    <Bot className="text-kisaan-600" size={24} />
+            <header className="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between shrink-0">
+                <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-full bg-kisaan-100 flex items-center justify-center mr-3">
+                        <Bot className="text-kisaan-600" size={24} />
+                    </div>
+                    <div>
+                        <h1 className="font-bold text-gray-900 dark:text-white">Kisaan Mitra AI</h1>
+                        <p className="text-xs text-green-600 font-medium tracking-wide">● Online</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="font-bold text-gray-900 dark:text-white">Kisaan Mitra AI</h1>
-                    <p className="text-xs text-green-600 font-medium tracking-wide">● Online</p>
+
+                {/* Language Selector */}
+                <div className="flex items-center bg-gray-50 dark:bg-gray-700 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-600">
+                    <Globe size={14} className="text-gray-500 mr-2" />
+                    <select
+                        value={user?.language || 'English'}
+                        onChange={handleLanguageChange}
+                        className="bg-transparent text-xs font-medium text-gray-700 dark:text-gray-300 outline-none cursor-pointer"
+                    >
+                        <option value="English">English</option>
+                        <option value="Hindi">हिंदी (Hindi)</option>
+                        <option value="Marathi">मराठी (Marathi)</option>
+                        <option value="Telugu">తెలుగు (Telugu)</option>
+                        <option value="Tamil">தமிழ் (Tamil)</option>
+                        <option value="Gujarati">ગુજરાતી (Gujarati)</option>
+                        <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+                    </select>
                 </div>
             </header>
 
