@@ -196,7 +196,7 @@
     margin: 0;
     font-size: 1rem;
     font-weight: 500;
-    color: var(--sm-accent, #5227FF);
+    color: var(--sm-accent, #22c55e);
 }
 
 .sm-socials-list {
@@ -223,7 +223,7 @@
 }
 
 .sm-socials-link:focus-visible {
-    outline: 2px solid var(--sm-accent, #5227FF);
+    outline: 2px solid var(--sm-accent, #22c55e);
     outline-offset: 3px;
 }
 
@@ -249,7 +249,7 @@
 }
 
 .sm-socials-link:hover {
-    color: var(--sm-accent, #5227FF);
+    color: var(--sm-accent, #22c55e);
 }
 
 .sm-panel-title {
@@ -272,22 +272,24 @@
 .sm-panel-item {
     position: relative;
     color: #fff;
-    font-weight: 700;
+    font-weight: 500;
     font-family: system-ui, -apple-system, sans-serif;
-    font-size: 2.3rem;
-    /* Increased size by roughly 5% */
+    font-size: 14px;
     cursor: pointer;
     line-height: 1.2;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.2px;
     text-transform: uppercase;
-    transition:
-        background 0.25s,
-        color 0.25s;
+    transition: all 0.2s ease;
     display: inline-flex;
     text-decoration: none;
-    padding-right: 2em;
-    padding-top: 0.3em;
-    padding-bottom: 0.3em;
+    padding: 0.8em 1.5em;
+    width: 100%;
+    border-radius: 8px;
+}
+
+.sm-panel-item:hover {
+    color: #22c55e;
+    background-color: rgba(34, 197, 94, 0.1);
 }
 
 .staggered-menu-panel .sm-socials-list .sm-socials-link {
@@ -314,9 +316,6 @@
     transform-origin: 50% 100%;
 }
 
-.sm-panel-item:hover {
-    color: var(--sm-accent, #5227ff);
-}
 
 .sm-panel-list[data-numbering] {
     counter-reset: smItem;
@@ -331,8 +330,8 @@
     /* Shifted higher and closer to text */
     font-size: 14px;
     font-weight: 500;
-    color: #3b28cc;
-    /* Dark blue from the screenshot */
+    color: #16a34a;
+    /* Green accent for numbering */
     letter-spacing: 0;
     pointer-events: none;
     user-select: none;

@@ -233,6 +233,7 @@ export default function Chat() {
                         <option value="Tamil">தமிழ் (Tamil)</option>
                         <option value="Gujarati">ગુજરાતી (Gujarati)</option>
                         <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+                        <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
                     </select>
                 </div>
             </header>

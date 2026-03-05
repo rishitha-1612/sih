@@ -1,0 +1,10 @@
+.env
+node_modules/
+uploads/
+kisaan.db
+logs.txt
+ai_models/disease/plant_disease_prediction_model.h5
+ai_models/disease/class_indices.json
+ai_models/disease/training_status.json
+ai_models/advisory/RandomForest.pkl
+__pycache__/

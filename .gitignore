@@ -1,0 +1,41 @@
+# Node.js
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+kagglehub/
+
+# Large Files & Model Binaries
+*.h5
+*.pkl
+*.pb
+*.tflite
+ai_models/disease/plant_disease_prediction_model.h5
+ai_models/disease/class_indices.json
+ai_models/disease/training_status.json
+ai_models/advisory/RandomForest.pkl
+
+# Databases & Logs
+*.db
+kisaan.db
+logs.txt
+*.log
+
+# User Uploads
+uploads/
+
+# OS/Editor
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db

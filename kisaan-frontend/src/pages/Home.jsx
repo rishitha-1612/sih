@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { CloudSun, Sprout, TrendingUp, ShieldAlert, LogOut, ChevronRight, MapPin, Droplets, Wind, CloudRain, Leaf, ArrowRight, Activity, Wallet } from 'lucide-react';
+import { CloudSun, Sprout, TrendingUp, ShieldAlert, LogOut, ChevronRight, MapPin, Droplets, Wind, CloudRain, Leaf, ArrowRight, Activity, Wallet, ChevronDown, ChevronUp, Clock, CheckCircle2, FlaskConical, TrendingDown } from 'lucide-react';
+import { getCropData } from '../utils/farmingUtils';
 import { useNavigate } from 'react-router-dom';
 
 export default function Home() {
     const navigate = useNavigate();
     const user = useStore(state => state.user);
     const clearUser = useStore(state => state.clearUser);
-    const [weather, setWeather] = useState({ temp: '..°C', condition: 'Fetching...' });
+    const [weather, setWeather] = useState({ temp: '28', condition: 'Partly Cloudy', rainChance: 60, windSpeed: 12 });
     const [schemes, setSchemes] = useState([]);
     const [loadingSchemes, setLoadingSchemes] = useState(true);
+    const [advisoryExpanded, setAdvisoryExpanded] = useState(false);
+    const [trendsExpanded, setTrendsExpanded] = useState(false);
 
     useEffect(() => {
         const fetchWeather = async () => {
@@ -19,13 +22,16 @@ export default function Home() {
                 if (!res.ok) throw new Error('Weather fetch failed');
                 const data = await res.json();
                 const current = data.current_condition[0];
+                const rain = data.weather?.[0]?.hourly?.[4]?.chanceofrain || 60;
                 setWeather({
-                    temp: `${current.temp_C}°C`,
-                    condition: current.weatherDesc[0].value
+                    temp: current.temp_C,
+                    condition: current.weatherDesc[0].value,
+                    rainChance: parseInt(rain),
+                    windSpeed: current.windspeedKmph,
                 });
             } catch (error) {
                 console.error("Failed to fetch weather", error);
-                setWeather({ temp: '28.5°C', condition: 'Partly Cloudy' }); // Mock Fallback matching mockup
+                setWeather({ temp: '28', condition: 'Partly Cloudy', rainChance: 60, windSpeed: 12 });
             }
         };
 
@@ -115,46 +121,144 @@ export default function Home() {
                 </section>
 
                 {/* Quick Info Grid (Advisory & Market) */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="flex flex-col gap-4 mb-6">
                     {/* Advisory Card */}
-                    <div className="relative bg-[#0d1512] rounded-2xl p-4 border border-green-500/20 shadow-[0_0_20px_rgba(34,197,94,0.05)] overflow-hidden flex flex-col justify-between group">
-                        <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-green-500/10 to-transparent"></div>
-                        <div className="relative z-10">
-                            <div className="flex items-center text-green-400 mb-2 font-semibold text-sm">
-                                <Sprout size={16} className="mr-2" />
-                                Crop Advisory
+                    <div className="relative bg-[#0d1512] rounded-2xl border border-green-500/20 shadow-[0_0_20px_rgba(34,197,94,0.05)] overflow-hidden transition-all duration-300">
+                        <div className="p-4">
+                            <div className="flex items-center justify-between text-green-400 mb-2 font-semibold text-sm">
+                                <div className="flex items-center">
+                                    <Sprout size={16} className="mr-2" />
+                                    Crop Advisory
+                                </div>
+                                {advisoryExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </div>
-                            <p className="text-xs text-gray-300 leading-relaxed mb-4">
-                                Apply Urea in <span className="text-green-400 font-bold">3 days</span> - Light rain expected.
+                            <p className="text-xs text-gray-300 leading-relaxed">
+                                {advisoryExpanded ? (
+                                    <span>Detailed recommendations for your <b>{user?.crop || 'Cotton'}</b> crop based on current conditions.</span>
+                                ) : (
+                                    <span>Apply Urea in <span className="text-green-400 font-bold">3 days</span> - Light rain expected.</span>
+                                )}
                             </p>
+
+                            {/* Expandable Content for Advisory */}
+                            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${advisoryExpanded ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+                                <div className="space-y-4 pt-2 border-t border-white/5">
+                                    {(() => {
+                                        const cropData = getCropData(user?.crop || 'Cotton', parseFloat(weather.temp), weather.rainChance, 55);
+                                        return (
+                                            <>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    <div className="bg-green-500/10 rounded-xl p-3 border border-green-500/20">
+                                                        <div className="flex items-center gap-2 mb-1.5">
+                                                            <FlaskConical size={14} className="text-green-400" />
+                                                            <span className="text-[11px] font-bold text-white">Fertilizer: {cropData.fertilizers[0].name}</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-300">Quantity: {cropData.fertilizers[0].dose}</p>
+                                                        <p className="text-[10px] text-green-400 font-medium mt-1 inline-flex items-center gap-1">
+                                                            <Clock size={10} /> {cropData.fertilizers[0].timing}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="bg-blue-500/10 rounded-xl p-3 border border-blue-500/20">
+                                                        <div className="flex items-center gap-2 mb-1.5">
+                                                            <Droplets size={14} className="text-blue-400" />
+                                                            <span className="text-[11px] font-bold text-white">Irrigation Guidance</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-300">{cropData.waterMgmt.amount} · {cropData.waterMgmt.schedule}</p>
+                                                        <p className="text-[10px] text-blue-400 font-medium mt-1">{cropData.waterMgmt.rainfallAdj}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-orange-500/10 rounded-xl p-3 border border-orange-500/20">
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <CheckCircle2 size={14} className="text-orange-400" />
+                                                        <span className="text-[11px] font-bold text-white">Expert Tips</span>
+                                                    </div>
+                                                    <ul className="space-y-1.5">
+                                                        {cropData.tips.slice(0, 2).map((tip, i) => (
+                                                            <li key={i} className="text-[10px] text-gray-300 flex items-start gap-2">
+                                                                <span className="text-orange-400 mt-0.5">•</span>
+                                                                {tip}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
                         </div>
-                        <div className="relative z-10 flex items-center justify-between mt-auto">
-                            <button className="text-[11px] font-bold text-white bg-green-500/20 px-3 py-1.5 rounded-full border border-green-500/30 flex items-center transition-all hover:bg-green-500/30">
-                                View Details <ArrowRight size={12} className="ml-1" />
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => setAdvisoryExpanded(!advisoryExpanded)}
+                            className="w-full py-2.5 bg-green-500/10 hover:bg-green-500/20 text-[11px] font-bold text-green-400 border-t border-green-500/20 transition-all flex items-center justify-center gap-1"
+                        >
+                            {advisoryExpanded ? 'Show Less' : 'View Details'} {!advisoryExpanded && <ArrowRight size={12} />}
+                        </button>
                     </div>
 
                     {/* Market Card */}
-                    <div className="relative bg-[#1a120b] rounded-2xl p-4 border border-orange-500/20 shadow-[0_0_20px_rgba(249,115,22,0.05)] overflow-hidden flex flex-col justify-between group">
-                        <div className="absolute bottom-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
-                        <div className="relative z-10">
-                            <div className="flex items-center text-orange-400 mb-2 font-semibold text-sm">
-                                <TrendingUp size={16} className="mr-2" />
-                                Market Trend
+                    <div className="relative bg-[#1a120b] rounded-2xl border border-orange-500/20 shadow-[0_0_20px_rgba(249,115,22,0.05)] overflow-hidden transition-all duration-300">
+                        <div className="p-4">
+                            <div className="flex items-center justify-between text-orange-400 mb-2 font-semibold text-sm">
+                                <div className="flex items-center">
+                                    <TrendingUp size={16} className="mr-2" />
+                                    Market Trend
+                                </div>
+                                {trendsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </div>
-                            <p className="text-xs text-gray-300 leading-relaxed mb-3">
+                            <p className="text-xs text-gray-300 leading-relaxed">
                                 {user?.crop || 'Cotton'} prices <span className="text-orange-400 font-bold">↑ by 5%</span> in nearby Mandi
                             </p>
-                            <span className="inline-block text-[10px] bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded pl-1">
-                                ✓ Good Time to Sell
-                            </span>
+
+                            {/* Expandable Content for Market Trends */}
+                            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${trendsExpanded ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+                                <div className="space-y-4 pt-2 border-t border-white/5">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                                            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Current Price</p>
+                                            <p className="text-sm font-bold text-white">₹22/kg</p>
+                                        </div>
+                                        <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                                            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Last Week</p>
+                                            <p className="text-sm font-bold text-gray-300">₹18/kg</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-green-500/10 rounded-xl p-3 border border-green-500/20">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-[11px] font-bold text-white flex items-center gap-1">
+                                                <Activity size={12} className="text-green-400" /> Demand Level
+                                            </span>
+                                            <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/30">High</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-300">Recommended selling time: <span className="text-green-400 font-bold">Next 4-5 days</span> for maximum profit.</p>
+                                    </div>
+
+                                    <div className="bg-[#1a120b] border border-orange-500/20 rounded-xl p-3">
+                                        <p className="text-[11px] font-bold text-orange-300 mb-2 flex items-center gap-1">
+                                            <MapPin size={12} /> Nearby Market Prices
+                                        </p>
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between text-[10px]">
+                                                <span className="text-gray-400">Hubballi Mandi</span>
+                                                <span className="text-white font-medium">₹23.5/kg</span>
+                                            </div>
+                                            <div className="flex justify-between text-[10px]">
+                                                <span className="text-gray-400">Dharwad Market</span>
+                                                <span className="text-white font-medium">₹21.8/kg</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="relative z-10 flex justify-end mt-4">
-                            <button className="text-[11px] font-bold text-gray-300 hover:text-white flex items-center">
-                                View Trends <ArrowRight size={12} className="ml-1" />
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => setTrendsExpanded(!trendsExpanded)}
+                            className="w-full py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-[11px] font-bold text-orange-400 border-t border-orange-500/20 transition-all flex items-center justify-center gap-1"
+                        >
+                            {trendsExpanded ? 'Show Less' : 'View Trends'} {!trendsExpanded && <ArrowRight size={12} />}
+                        </button>
                     </div>
                 </div>
 

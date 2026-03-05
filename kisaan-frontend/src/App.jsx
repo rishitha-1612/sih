@@ -7,6 +7,8 @@ import Schemes from './pages/Schemes';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import CropAdvisory from './pages/CropAdvisory';
+import PlantDiseaseDetection from './pages/PlantDiseaseDetection';
 import { useStore } from './store/useStore';
 import StaggeredMenu from './components/StaggeredMenu';
 import Squares from './components/Squares';
@@ -35,6 +37,7 @@ function App() {
   const menuItems = [
     { label: 'Home', ariaLabel: 'Go to home page', link: '/' },
     { label: 'Chat AI', ariaLabel: 'Go to Chat AI', link: '/chat' },
+    { label: 'Plant Disease', ariaLabel: 'Detect Plant Disease', link: '/plant-disease' },
     { label: 'Market', ariaLabel: 'Go to Market', link: '/market' },
     { label: 'Select Crop', ariaLabel: 'Select Crop', link: '/onboarding?step=1' },
     { label: 'Select Location', ariaLabel: 'Select Location', link: '/onboarding?step=2' },
@@ -99,6 +102,8 @@ function App() {
                   <Route path="/market" element={<Market />} />
                   <Route path="/rewards" element={<Rewards />} />
                   <Route path="/schemes" element={<Schemes />} />
+                  <Route path="/crop-advisory" element={<CropAdvisory />} />
+                  <Route path="/plant-disease" element={<PlantDiseaseDetection />} />
                   <Route path="/onboarding" element={<Onboarding />} />
                   <Route path="/logout" element={<LogoutHandler />} />
                   <Route path="*" element={<Navigate to="/" />} />
