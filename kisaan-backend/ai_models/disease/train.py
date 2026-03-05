@@ -1,3 +1,4 @@
+
 import os
 import sys
 
@@ -14,10 +15,11 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
 
 def train_model():
-    working_dir = os.path.dirname(os.path.abspath(__file__))
+    # Use the current working directory as __file__ is not defined in Colab notebooks
+    working_dir = os.getcwd()
     print("Downloading dataset from Kaggle...")
     path = kagglehub.dataset_download("emmarex/plantdisease")
-    
+
     # Correct path for SiddharthDhirde expected structure
     dataset_path = os.path.join(path, "PlantVillage", "PlantVillage")
     if not os.path.exists(dataset_path):
@@ -74,7 +76,7 @@ def train_model():
 
     # Path for status tracking
     status_path = os.path.join(working_dir, 'training_status.json')
-    
+
     # Custom callback to update progress
     class StatusCallback(tf.keras.callbacks.Callback):
         def on_epoch_end(self, epoch, logs=None):
@@ -102,13 +104,13 @@ def train_model():
 
     # Save model and labels
     model.save(os.path.join(working_dir, 'plant_disease_prediction_model.h5'))
-    
+
     with open(os.path.join(working_dir, 'class_indices.json'), 'w') as f:
         json.dump(train_generator.class_indices, f)
-    
+
     with open(status_path, 'w') as f:
         json.dump({"status": "complete", "message": "CNN model loaded successfully. Real predictions enabled."}, f)
-    
+
     print("Training complete. Model saved.")
 
 if __name__ == "__main__":
