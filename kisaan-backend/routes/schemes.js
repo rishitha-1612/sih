@@ -63,7 +63,7 @@ router.get('/', (req, res) => {
                 title: `State Subsidy for ${crop.charAt(0).toUpperCase() + crop.slice(1)} Farmers`,
                 description: `Special financial assistance for ${crop} cultivation in ${location || 'your district'}.`,
                 tags: [crop, "State Govt"],
-                link: "#"
+                link: "https://agricoop.nic.in/"
             });
         }
     }

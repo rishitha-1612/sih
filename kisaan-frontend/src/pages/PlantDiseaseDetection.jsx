@@ -88,16 +88,17 @@ export default function PlantDiseaseDetection() {
         return () => clearInterval(interval);
     }, []);
 
+    const isHealthy = (disease) => {
+        if (!disease) return false;
+        return disease.toLowerCase().includes('healthy');
+    };
+
     const detectDisease = async () => {
         if (!image) return;
 
-        if (trainingStatus?.status !== 'complete') {
-            setError("The disease detection model is still training. Please wait until training completes.");
-            return;
-        }
-
         setLoading(true);
         setError(null);
+        setResult(null);
 
         const formData = new FormData();
         formData.append('image', image);
@@ -110,14 +111,23 @@ export default function PlantDiseaseDetection() {
 
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Detection failed');
+            // Catch both HTTP errors and backend-reported errors (e.g. model not found)
+            if (!response.ok || data.error) {
+                const msg = data.error || 'Detection failed';
+                // Friendly messages for common errors
+                if (msg.toLowerCase().includes('model file not found')) {
+                    throw new Error('⚠️ The disease detection model is not trained yet. Please run the training script first.');
+                }
+                if (msg.toLowerCase().includes('tensorflow is not installed')) {
+                    throw new Error('⚠️ TensorFlow is not installed on the server. Please install it to use disease detection.');
+                }
+                throw new Error(msg);
             }
 
             setResult(data);
         } catch (err) {
             console.error(err);
-            setError(err.message || "Failed to process image. Please try again.");
+            setError(err.message || 'Failed to process image. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -143,8 +153,8 @@ export default function PlantDiseaseDetection() {
                 {/* Training Status Banner */}
                 {trainingStatus && (
                     <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-700 ${trainingStatus.status === 'complete'
-                            ? 'bg-green-500/10 border-green-500/20 text-green-400'
-                            : 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                        ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                        : 'bg-blue-500/10 border-blue-500/20 text-blue-400'
                         }`}>
                         {trainingStatus.status === 'complete' ? (
                             <CheckCircle size={20} />
@@ -252,45 +262,69 @@ export default function PlantDiseaseDetection() {
                     {result && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="bg-gradient-to-br from-gray-900 to-[#0a0a0a] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-                                <div className="bg-green-500/10 border-b border-white/5 p-4 flex items-center justify-between">
+                                {/* Header — green if healthy, red if diseased */}
+                                <div className={`border-b border-white/5 p-4 flex items-center justify-between ${isHealthy(result.disease)
+                                        ? 'bg-green-500/10'
+                                        : 'bg-red-500/10'
+                                    }`}>
                                     <div className="flex items-center gap-2">
-                                        <CheckCircle className="text-green-400" size={18} />
-                                        <span className="text-xs font-bold text-green-400 uppercase tracking-wider">Analysis Complete</span>
+                                        {isHealthy(result.disease) ? (
+                                            <CheckCircle className="text-green-400" size={18} />
+                                        ) : (
+                                            <AlertCircle className="text-red-400" size={18} />
+                                        )}
+                                        <span className={`text-xs font-bold uppercase tracking-wider ${isHealthy(result.disease) ? 'text-green-400' : 'text-red-400'
+                                            }`}>
+                                            {isHealthy(result.disease) ? '✅ Plant is Healthy' : '⚠️ Disease Detected'}
+                                        </span>
                                     </div>
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">
-                                        {result.confidence} Match
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isHealthy(result.disease)
+                                            ? 'bg-green-500/20 text-green-400'
+                                            : 'bg-red-500/20 text-red-400'
+                                        }`}>
+                                        {result.confidence} confidence
                                     </span>
                                 </div>
+
                                 <div className="p-6 space-y-5">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] uppercase tracking-wide text-gray-500 font-bold">Plant Name</p>
+                                            <p className="text-[10px] uppercase tracking-wide text-gray-500 font-bold">Plant</p>
                                             <p className="text-lg font-bold text-white">{result.plant}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] uppercase tracking-wide text-gray-500 font-bold">Detected Condition</p>
-                                            <p className={`text-lg font-bold ${result.disease.toLowerCase().includes('healthy') ? 'text-green-400' : 'text-orange-400'}`}>
+                                            <p className="text-[10px] uppercase tracking-wide text-gray-500 font-bold">Condition</p>
+                                            <p className={`text-lg font-bold ${isHealthy(result.disease) ? 'text-green-400' : 'text-orange-400'
+                                                }`}>
                                                 {result.disease}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-3">
-                                        <div className="flex items-center gap-2 text-blue-400">
+                                    <div className={`rounded-2xl p-4 border space-y-3 ${isHealthy(result.disease)
+                                            ? 'bg-green-500/5 border-green-500/15'
+                                            : 'bg-orange-500/5 border-orange-500/15'
+                                        }`}>
+                                        <div className={`flex items-center gap-2 ${isHealthy(result.disease) ? 'text-green-400' : 'text-orange-400'
+                                            }`}>
                                             <Info size={16} />
-                                            <span className="text-xs font-bold uppercase tracking-wider">Treatment Recommendation</span>
+                                            <span className="text-xs font-bold uppercase tracking-wider">
+                                                {isHealthy(result.disease) ? 'Care Tips' : 'Treatment Recommendation'}
+                                            </span>
                                         </div>
                                         <p className="text-sm text-gray-300 leading-relaxed font-medium">
                                             {result.treatment}
                                         </p>
                                     </div>
 
-                                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex gap-3">
-                                        <AlertCircle className="text-yellow-400 shrink-0" size={18} />
-                                        <p className="text-[11px] text-yellow-200/80 leading-snug">
-                                            <b>Note:</b> These results are generated by the <b>SiddharthDhirde CNN Model</b>. For critical decisions, please consult with a professional agronomist.
-                                        </p>
-                                    </div>
+                                    {!isHealthy(result.disease) && (
+                                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex gap-3">
+                                            <AlertCircle className="text-yellow-400 shrink-0" size={18} />
+                                            <p className="text-[11px] text-yellow-200/80 leading-snug">
+                                                <b>Note:</b> These results are from the <b>CNN disease detection model</b>. For critical decisions, consult a professional agronomist.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

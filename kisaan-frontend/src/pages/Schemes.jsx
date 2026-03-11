@@ -25,12 +25,12 @@ export default function Schemes() {
             } catch (error) {
                 // Expanding the fallback data for demonstration purposes on the standalone page
                 setSchemes([
-                    { id: 1, title: 'Pradhan Mantri Fasal Bima Yojana (PMFBY)', description: 'Crop insurance scheme providing financial support in case of crop failure.', tags: ['Insurance', user?.crop || 'Cotton'], type: 'green' },
-                    { id: 2, title: 'National Mission on Micro Irrigation', description: 'Subsidies for drip & sprinkler systems.', tags: ['Irrigation', 'Water Savings'], type: 'blue' },
-                    { id: 3, title: 'PM-Kisan Samman Nidhi', description: '₹6,000/year Income Support.', tags: ['Government', 'Income'], type: 'orange' },
-                    { id: 4, title: 'Soil Health Card Scheme', description: 'Helps farmers understand soil health and improve crop yield through optimized nutrient use.', tags: ['Soil', 'Sustainability'], type: 'green' },
-                    { id: 5, title: 'Kisan Credit Card (KCC)', description: 'Access adequate and timely credit support from the banking system.', tags: ['Finance', 'Credit'], type: 'blue' },
-                    { id: 6, title: 'Paramparagat Krishi Vikas Yojana', description: 'Promotes organic farming to improve soil health and increase agricultural sustainability.', tags: ['Organic', 'Eco-friendly'], type: 'orange' },
+                    { id: 1, title: 'Pradhan Mantri Fasal Bima Yojana (PMFBY)', description: 'Crop insurance scheme providing financial support in case of crop failure.', tags: ['Insurance', user?.crop || 'Cotton'], type: 'green', link: 'https://pmfby.gov.in/' },
+                    { id: 2, title: 'National Mission on Micro Irrigation', description: 'Subsidies for drip & sprinkler systems.', tags: ['Irrigation', 'Water Savings'], type: 'blue', link: 'https://pmksy.gov.in/mis/mi/' },
+                    { id: 3, title: 'PM-Kisan Samman Nidhi', description: '₹6,000/year Income Support.', tags: ['Government', 'Income'], type: 'orange', link: 'https://pmkisan.gov.in' },
+                    { id: 4, title: 'Soil Health Card Scheme', description: 'Helps farmers understand soil health and improve crop yield through optimized nutrient use.', tags: ['Soil', 'Sustainability'], type: 'green', link: 'https://soilhealth.dac.gov.in/' },
+                    { id: 5, title: 'Kisan Credit Card (KCC)', description: 'Access adequate and timely credit support from the banking system.', tags: ['Finance', 'Credit'], type: 'blue', link: 'https://www.india.gov.in/spotlight/kisan-credit-card' },
+                    { id: 6, title: 'Paramparagat Krishi Vikas Yojana', description: 'Promotes organic farming to improve soil health and increase agricultural sustainability.', tags: ['Organic', 'Eco-friendly'], type: 'orange', link: 'https://pgsindia-ncof.gov.in/pkvy/index.aspx' },
                 ]);
             } finally {
                 setLoading(false);
@@ -89,9 +89,12 @@ export default function Schemes() {
                                 <div className="mt-2 md:mt-0 flex w-full md:w-auto">
                                     <button
                                         onClick={() => {
-                                            alert(`Application process initiated for ${scheme.title}`);
+                                            if (scheme.link && scheme.link !== '#') {
+                                                window.open(scheme.link, '_blank', 'noopener,noreferrer');
+                                            }
                                         }}
-                                        className={`w-full text-sm font-bold text-white bg-gradient-to-r ${theme.btn} px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 whitespace-nowrap`}
+                                        disabled={!scheme.link || scheme.link === '#'}
+                                        className={`w-full text-sm font-bold text-white bg-gradient-to-r ${theme.btn} px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
                                         Apply Now
                                     </button>

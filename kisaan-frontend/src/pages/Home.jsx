@@ -44,9 +44,9 @@ export default function Home() {
                 console.error("Failed to fetch schemes", error);
                 // Fallback UI data if backend unavail
                 setSchemes([
-                    { id: 1, title: 'Pradhan Mantri Fasal Bima Yojana (PMFBY)', description: 'Crop insurance scheme providing financial support in case of crop failure.', tags: ['Insurance', user?.crop || 'Cotton'], type: 'green' },
-                    { id: 2, title: 'National Mission on Micro Irrigation', description: 'Subsidies for drip & sprinkler systems.', tags: ['Irrigation', 'Sugarcane'], type: 'blue' },
-                    { id: 3, title: 'PM-Kisan Samman Nidhi', description: '₹6,000/year Income Support.', tags: ['Government', 'Income'], type: 'orange' }
+                    { id: 1, title: 'Pradhan Mantri Fasal Bima Yojana (PMFBY)', description: 'Crop insurance scheme providing financial support in case of crop failure.', tags: ['Insurance', user?.crop || 'Cotton'], type: 'green', link: 'https://pmfby.gov.in/' },
+                    { id: 2, title: 'National Mission on Micro Irrigation', description: 'Subsidies for drip & sprinkler systems.', tags: ['Irrigation', 'Sugarcane'], type: 'blue', link: 'https://pmksy.gov.in/mis/mi/' },
+                    { id: 3, title: 'PM-Kisan Samman Nidhi', description: '₹6,000/year Income Support.', tags: ['Government', 'Income'], type: 'orange', link: 'https://pmkisan.gov.in' }
                 ]);
             } finally {
                 setLoadingSchemes(false);
@@ -101,7 +101,7 @@ export default function Home() {
 
                         <div className="flex justify-between items-start mb-6">
                             <div>
-                                <h2 className="text-5xl font-black text-white tracking-tighter shadow-sm">{weather.temp}</h2>
+                                <h2 className="text-5xl font-black text-white tracking-tighter shadow-sm">{weather.temp}°C</h2>
                             </div>
                             <div className="flex items-center bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-sm">
                                 <CloudSun size={20} className="text-yellow-300 mr-2" />
@@ -301,7 +301,15 @@ export default function Home() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <button className={`w-full sm:w-auto text-xs font-bold text-white bg-gradient-to-r ${theme.btn} px-5 py-2 rounded-xl shadow-lg transition-transform active:scale-95 whitespace-nowrap`}>
+                                        <button
+                                            onClick={() => {
+                                                if (scheme.link && scheme.link !== '#') {
+                                                    window.open(scheme.link, '_blank', 'noopener,noreferrer');
+                                                }
+                                            }}
+                                            disabled={!scheme.link || scheme.link === '#'}
+                                            className={`w-full sm:w-auto text-xs font-bold text-white bg-gradient-to-r ${theme.btn} px-5 py-2 rounded-xl shadow-lg transition-transform active:scale-95 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        >
                                             Apply Now
                                         </button>
                                     </div>

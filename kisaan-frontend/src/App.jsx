@@ -39,6 +39,7 @@ function App() {
     { label: 'Chat AI', ariaLabel: 'Go to Chat AI', link: '/chat' },
     { label: 'Plant Disease', ariaLabel: 'Detect Plant Disease', link: '/plant-disease' },
     { label: 'Market', ariaLabel: 'Go to Market', link: '/market' },
+    { label: 'Rewards', ariaLabel: 'Go to Rewards', link: '/rewards' },
     { label: 'Select Crop', ariaLabel: 'Select Crop', link: '/onboarding?step=1' },
     { label: 'Select Location', ariaLabel: 'Select Location', link: '/onboarding?step=2' },
     { label: 'Logout', ariaLabel: 'Log out', link: '/logout' }

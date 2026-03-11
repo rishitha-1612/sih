@@ -8,3 +8,4 @@ ai_models/disease/class_indices.json
 ai_models/disease/training_status.json
 ai_models/advisory/RandomForest.pkl
 __pycache__/
+*.db
