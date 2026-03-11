@@ -8,6 +8,9 @@ require('dotenv').config();
 
 const router = express.Router();
 
+// FastAPI LLM Service URL — set LLM_SERVICE_URL in .env to point to your deployed service
+const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || 'http://localhost:8000';
+
 // Setup Multer for Image Uploads
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -116,30 +119,38 @@ router.post('/chat', async (req, res) => {
         let botReply = "I'm sorry, I couldn't process your request.";
 
         try {
-            const response = await fetch('http://localhost:11434/api/chat', {
+            // Call the FastAPI LLM service (TinyLlama) — no Ollama needed!
+            // 120s timeout to allow model cold-start loading on first request
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+            const response = await fetch(`${LLM_SERVICE_URL}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'llama3',
                     messages: messages,
-                    stream: false
-                })
+                    language: langPref
+                }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
-                throw new Error(`Ollama HTTP error! status: ${response.status}`);
+                const errBody = await response.text();
+                throw new Error(`LLM service error ${response.status}: ${errBody}`);
             }
 
             const data = await response.json();
-            if (data && data.message && data.message.content) {
-                botReply = data.message.content;
+            if (data && data.reply) {
+                botReply = data.reply;
             }
         } catch (err) {
-            console.error('Ollama Local AI Error:', err.message);
-            const ollamaHelpMsg = "⚠️ Local AI (Ollama) is not running or the model is missing. Please start Ollama and ensure the 'llama3' model is installed to use Kisaan Mitra AI offline.";
-            // Still log their message and the failed bot message
-            db.run(`INSERT INTO chats (user_id, message, is_bot_reply) VALUES (?, ?, 1)`, [activeUserId, ollamaHelpMsg]);
-            return res.status(503).json({ error: ollamaHelpMsg });
+            console.error('FastAPI LLM Service Error:', err.message);
+            const serviceErrMsg = err.name === 'AbortError'
+                ? `⏳ The AI is still loading the TinyLlama model (this only happens once). Please wait 30 seconds and try again.`
+                : `⚠️ AI service error. Make sure the FastAPI service is running: uvicorn main:app --reload --port 8000`;
+            db.run(`INSERT INTO chats (user_id, message, is_bot_reply) VALUES (?, ?, 1)`, [activeUserId, serviceErrMsg]);
+            return res.status(503).json({ error: serviceErrMsg });
         }
 
         // Save bot reply
@@ -202,16 +213,6 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
         const fileBytes = fs.readFileSync(imageUrl);
         const base64Data = fileBytes.toString("base64");
 
-        const prompt = `You are Kisaan Mitra AI, a master agronomist. 
-Analyze the uploaded image of this crop/plant. 
-Identify any visible diseases, pests, deficiencies, or state exactly what the crop is if healthy.
-Provide your response in JSON format exactly like this:
-{
-   "diseasePredicted": "Name of disease/pest OR 'Healthy Crop'",
-   "confidence": "percentage string like '95%'",
-   "treatment": "Provide a practical, step-by-step treatment or maintenance advice for a farmer."
-}`;
-
         let parsedData = {
             diseasePredicted: "Analysis Failed",
             confidence: "0%",
@@ -219,42 +220,44 @@ Provide your response in JSON format exactly like this:
         };
 
         try {
-            const response = await fetch('http://localhost:11434/api/generate', {
+            // Call the FastAPI LLM service vision endpoint — TinyLlama (text-only, describes symptoms)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+            const response = await fetch(`${LLM_SERVICE_URL}/analyze-image`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'llava',
-                    prompt: prompt,
-                    images: [base64Data],
-                    stream: false,
-                    format: 'json'
-                })
+                    image_base64: base64Data
+                }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
-                throw new Error(`Ollama HTTP error! status: ${response.status}`);
+                const errBody = await response.text();
+                throw new Error(`LLM vision service error ${response.status}: ${errBody}`);
             }
 
             const data = await response.json();
-            if (data && data.response) {
-                let textResult = data.response;
-                textResult = textResult.replace(/```json/g, '').replace(/```/g, ''); // Clean markdown formatting
-                try {
-                    parsedData = JSON.parse(textResult);
-                } catch (e) {
-                    parsedData.treatment = textResult; // fallback if JSON.parse fails
-                    parsedData.diseasePredicted = "Analysis Completed (Raw)";
-                }
+            if (data) {
+                parsedData = {
+                    diseasePredicted: data.diseasePredicted || 'Analysis Completed',
+                    confidence: data.confidence || 'N/A',
+                    treatment: data.treatment || 'See full response above.'
+                };
             }
         } catch (err) {
-            console.error('Ollama Image Scan Error:', err.message);
-            const ollamaHelpMsg = "⚠️ Local Vision AI (Ollama llava) is not running or the model is missing. Please start Ollama and ensure the 'llava' model is installed to use offline image scanning.";
-            parsedData.treatment = ollamaHelpMsg;
+            console.error('FastAPI Vision Service Error:', err.message);
+            const serviceErrMsg = err.name === 'AbortError'
+                ? `⏳ The AI is still loading (this only happens once). Please wait 30 seconds and try again.`
+                : `⚠️ Vision AI service error. Make sure the FastAPI service is running: uvicorn main:app --reload --port 8000`;
+            parsedData.treatment = serviceErrMsg;
             db.run(`INSERT INTO scans (user_id, image_url, disease_predicted, confidence, treatment) VALUES (?, ?, ?, ?, ?)`,
                 [activeUserId, imageUrl, parsedData.diseasePredicted, parsedData.confidence, parsedData.treatment]
             );
             return res.status(503).json({
-                error: ollamaHelpMsg,
+                error: serviceErrMsg,
                 diseasePredicted: parsedData.diseasePredicted,
                 confidence: parsedData.confidence,
                 treatment: parsedData.treatment,

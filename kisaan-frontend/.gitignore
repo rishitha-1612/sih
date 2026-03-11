@@ -1,25 +1,62 @@
-# Logs
-logs
+# Python virtual environments
+venv/
+.venv/
+env/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Node modules
+node_modules/
+
+# Build folders
+dist/
+build/
+dist-ssr/
+
+# Environment files
+.env
+.env.*
+
+# Logs and database files
 *.log
+*.db
+logs.txt
+kisaan.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# ML model files
+*.pkl
+*.h5
+*.pt
+*.bin
+*.gguf
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# AI model folders
+models/
+ai_models/
+
+# Upload folders
+uploads/
+
+# OS/editor files
 .DS_Store
+.vscode/
+.idea/
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.env
+
+# Kaggle cache
+kagglehub/
