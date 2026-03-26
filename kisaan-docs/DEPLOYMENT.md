@@ -1,7 +1,12 @@
 # Deployment Instructions
 
 ## Running Locally (for Hackathon Demo)
-1. create a virtual environment 
+1. create a virtual environment - 
+```
+python -m venv venv
+venv\Scripts\activate
+```
+
 2. Install the Python dependencies in your virtual environment:
    ```bash
    pip install -r requirements.txt
