@@ -187,7 +187,7 @@ export default function Home() {
                             </div>
                         </div>
                         <button
-                            onClick={() => navigate('/crop-advisory')}
+                            onClick={() => navigate('/crop-advisory?view=result')}
                             className="text-xs font-bold text-white bg-gradient-to-r from-green-600 to-green-400 px-4 py-2 rounded-lg"
                         >
                             View Details

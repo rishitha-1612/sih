@@ -109,7 +109,10 @@ async function fetchFromMyScheme(crop) {
         }));
 
     } catch (err) {
-        console.error('[Schemes] MyScheme API failed:', err.message);
+        // Silently fail for 401 (auth) or other transient errors if we have backups
+        if (!err.message.includes('401')) {
+            console.warn('[Schemes] MyScheme API failed:', err.message);
+        }
         return null;
     }
 }
@@ -171,10 +174,19 @@ router.get('/', async (req, res) => {
         if (!schemes) {
             console.log('[Schemes] Fetching live data...');
 
-            // Try MyScheme first, then Data.gov.in as backup
-            schemes = await fetchFromMyScheme(crop);
+            // 1. Try Data.gov.in if key is present (User's primary choice)
+            const hasDataGovKey = !!process.env.DATA_GOV_API_KEY;
+            if (hasDataGovKey) {
+                schemes = await fetchFromDataGov();
+            }
 
+            // 2. Try MyScheme if Data.gov.in failed or key missing
             if (!schemes) {
+                schemes = await fetchFromMyScheme(crop);
+            }
+
+            // 3. One last retry with Data.gov.in if MyScheme also failed and we didn't try it yet
+            if (!schemes && !hasDataGovKey) {
                 schemes = await fetchFromDataGov();
             }
 

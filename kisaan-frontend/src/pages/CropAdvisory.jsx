@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     FlaskConical, Wind, MapPin, ChevronDown, ChevronUp, ArrowLeft
 } from 'lucide-react';
@@ -37,6 +37,9 @@ export default function CropAdvisory() {
 
     const crop     = user?.crop_type || user?.crop || 'Maize';
     const location = user?.location  || 'Bangalore';
+
+    const [searchParams]   = useSearchParams();
+    const isResultView     = searchParams.get('view') === 'result';
 
     const [weather, setWeather] = useState({
         temp: '28', condition: '', rainChance: 60, windSpeed: 10, humidity: 70
@@ -118,74 +121,126 @@ export default function CropAdvisory() {
 
             <div className="max-w-lg mx-auto px-4 pt-5">
 
-                {/* Weather Card */}
-                <div className="bg-blue-600 rounded-2xl p-5 mb-5">
-                    <h2 className="text-4xl font-bold">
-                        {loading ? '...' : `${weather.temp}°C`}
-                    </h2>
-                    <p>{weather.condition}</p>
-                    <p className="text-sm mt-2">
-                        💧 Humidity: {weather.humidity}% | 🌧 Rain: {weather.rainChance}%
-                    </p>
-                </div>
+                {/* Weather Card — Only in full mode */}
+                {!isResultView && (
+                    <div className="bg-blue-600 rounded-2xl p-5 mb-5">
+                        <h2 className="text-4xl font-bold">
+                            {loading ? '...' : `${weather.temp}°C`}
+                        </h2>
+                        <p>{weather.condition}</p>
+                        <p className="text-sm mt-2">
+                            💧 Humidity: {weather.humidity}% | 🌧 Rain: {weather.rainChance}%
+                        </p>
+                    </div>
+                )}
 
-                {/* Soil Form */}
-                <SectionCard title="Enter Soil Details" icon={<FlaskConical size={16} />}>
-                    <form onSubmit={handleAdvisorySubmit} className="space-y-4">
-                        <select
-                            value={soilParams.SoilType}
-                            onChange={e => setSoilParams({ ...soilParams, SoilType: e.target.value })}
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white"
-                        >
-                            <option>Loamy</option>
-                            <option>Sandy</option>
-                            <option>Clay</option>
-                            <option>Black</option>
-                            <option>Red</option>
-                            <option>Alluvial</option>
-                        </select>
+                {/* Advisory Content */}
+                {isResultView ? (
+                    <div className="space-y-4">
+                        {advisoryResult ? (
+                            <div className="p-6 bg-green-500/10 border border-green-500/30 rounded-2xl relative shadow-lg">
+                                <p className="text-green-400 text-xs font-bold mb-1 uppercase tracking-wider">
+                                    Latest Recommendation
+                                </p>
+                                <h3 className="text-3xl font-black text-white mb-2">
+                                    {advisoryResult.fertilizer}
+                                </h3>
+                                <p className="text-sm text-gray-400">
+                                    Based on {crop} · {soilParams.SoilType} soil · {weather.temp}°C
+                                </p>
+                                <div className="mt-6 flex gap-3">
+                                    <button
+                                        onClick={() => navigate('/rewards')}
+                                        className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-green-900/20"
+                                    >
+                                        Buy Now
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/crop-advisory')}
+                                        className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-xl transition-all border border-white/10"
+                                    >
+                                        New Analysis
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-[#121418] border border-gray-800 rounded-2xl p-8 text-center">
+                                <FlaskConical className="mx-auto text-gray-600 mb-4" size={40} />
+                                <h3 className="text-xl font-bold text-white mb-2">No Recommendation Found</h3>
+                                <p className="text-sm text-gray-400 mb-6">
+                                    You haven't generated a fertilizer recommendation for your crop yet.
+                                </p>
+                                <button
+                                    onClick={() => navigate('/crop-advisory')}
+                                    className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl transition-all"
+                                >
+                                    Start Full Advisory
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
-                        {['Nitrogen', 'Phosphorous', 'Potassium'].map(field => (
-                            <input
-                                key={field}
-                                type="number"
-                                placeholder={field}
-                                required
-                                value={soilParams[field]}
-                                onChange={e => setSoilParams({ ...soilParams, [field]: e.target.value })}
-                                className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-gray-500"
-                            />
-                        ))}
+                ) : (
+                    <>
+                        {/* Soil Form — Only in full mode */}
+                        <SectionCard title="Enter Soil Details" icon={<FlaskConical size={16} />}>
+                            <form onSubmit={handleAdvisorySubmit} className="space-y-4">
+                                <select
+                                    value={soilParams.SoilType}
+                                    onChange={e => setSoilParams({ ...soilParams, SoilType: e.target.value })}
+                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white"
+                                >
+                                    <option>Loamy</option>
+                                    <option>Sandy</option>
+                                    <option>Clay</option>
+                                    <option>Black</option>
+                                    <option>Red</option>
+                                    <option>Alluvial</option>
+                                </select>
 
-                        <button
-                            type="submit"
-                            className="w-full bg-green-600 hover:bg-green-500 py-3 rounded-xl font-bold transition-colors"
-                        >
-                            {advisoryLoading ? 'Analyzing...' : 'Get Recommendation'}
-                        </button>
-                    </form>
+                                {['Nitrogen', 'Phosphorous', 'Potassium'].map(field => (
+                                    <input
+                                        key={field}
+                                        type="number"
+                                        placeholder={field}
+                                        required
+                                        value={soilParams[field]}
+                                        onChange={e => setSoilParams({ ...soilParams, [field]: e.target.value })}
+                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-gray-500"
+                                    />
+                                ))}
 
-                    {advisoryResult && (
-                        <div className="mt-5 p-4 bg-green-500/10 border border-green-500/30 rounded-xl relative group">
-                            <button
-                                onClick={clearAdvisoryResult}
-                                className="absolute top-2 right-2 p-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-lg transition-colors"
-                                title="Clear Recommendation"
-                            >
-                                <ArrowLeft size={14} className="rotate-45" />
-                            </button>
-                            <p className="text-green-400 text-xs font-bold mb-1">
-                                Recommended Fertilizer
-                            </p>
-                            <h3 className="text-xl font-bold text-white">
-                                {advisoryResult.fertilizer}
-                            </h3>
-                            <p className="text-xs text-gray-500 mt-2">
-                                Based on {crop} · {soilParams.SoilType} soil · {weather.temp}°C
-                            </p>
-                        </div>
-                    )}
-                </SectionCard>
+                                <button
+                                    type="submit"
+                                    className="w-full bg-green-600 hover:bg-green-500 py-3 rounded-xl font-bold transition-colors"
+                                >
+                                    {advisoryLoading ? 'Analyzing...' : 'Get Recommendation'}
+                                </button>
+                            </form>
+
+                            {advisoryResult && (
+                                <div className="mt-5 p-4 bg-green-500/10 border border-green-500/30 rounded-xl relative group">
+                                    <button
+                                        onClick={clearAdvisoryResult}
+                                        className="absolute top-2 right-2 p-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-lg transition-colors"
+                                        title="Clear Recommendation"
+                                    >
+                                        <ArrowLeft size={14} className="rotate-45" />
+                                    </button>
+                                    <p className="text-green-400 text-xs font-bold mb-1">
+                                        Recommended Fertilizer
+                                    </p>
+                                    <h3 className="text-xl font-bold text-white">
+                                        {advisoryResult.fertilizer}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Based on {crop} · {soilParams.SoilType} soil · {weather.temp}°C
+                                    </p>
+                                </div>
+                            )}
+                        </SectionCard>
+                    </>
+                )}
             </div>
         </div>
     );

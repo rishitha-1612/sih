@@ -217,17 +217,12 @@ export default function Rewards() {
                 <section className="mb-10">
                     <div className="flex items-center gap-2 mb-4">
                         <Leaf className="text-green-400" size={18} />
-                        <h2 className="text-lg font-bold text-white">
+                        <h2 className="text-lg font-extrabold text-white">
                             {advisoryFertilizer
-                                ? `Recommended for your Advisory`
+                                ? `Recommended for your Advisory Based on ${advisoryFertilizer}`
                                 : `Recommended for ${crop || 'your crop'}`
                             }
                         </h2>
-                        {advisoryFertilizer && (
-                            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-bold">
-                                Based on {advisoryFertilizer}
-                            </span>
-                        )}
                     </div>
 
                     {recommendedProducts.length > 0 ? (
