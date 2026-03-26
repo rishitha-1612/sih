@@ -50,7 +50,7 @@ export default function SignUp() {
             {/* Logo */}
             <div className="flex items-center gap-2 text-green-400 font-bold text-2xl mb-10">
                 <Leaf size={28} className="text-green-500" />
-                Kisaan Mitra
+                Kisaan Konnect
             </div>
 
             {/* Title */}

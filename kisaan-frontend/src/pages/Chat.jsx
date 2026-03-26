@@ -210,7 +210,7 @@ export default function Chat() {
                         <Bot className="text-kisaan-600" size={24} />
                     </div>
                     <div>
-                        <h1 className="font-bold text-gray-900 dark:text-white">Kisaan Mitra AI</h1>
+                        <h1 className="font-bold text-gray-900 dark:text-white">Kisaan Konnect AI</h1>
                         <p className="text-xs text-green-600 font-medium tracking-wide">● Online</p>
                     </div>
                 </div>

@@ -10,6 +10,10 @@ import SignUp               from './pages/SignUp';
 import CropAdvisory         from './pages/CropAdvisory';
 import PlantDiseaseDetection from './pages/PlantDiseaseDetection';
 
+import InstallButton         from './components/InstallButton';
+import SplashScreen          from './components/SplashScreen';
+import { AnimatePresence }   from 'framer-motion';
+
 import { useStore }      from './store/useStore';
 import StaggeredMenu     from './components/StaggeredMenu';
 import ShapeGrid         from './components/ShapeGrid'; // ✅ replaced Squares
@@ -36,6 +40,7 @@ function LogoutHandler() {
 // =============================================
 function App() {
     const user = useStore(state => state.user);
+    const [showSplash, setShowSplash] = React.useState(true);
 
     // ✅ Fixed: check crop_type not crop
     const requiresOnboarding = user && ((!user.crop_type && !user.crop) || !user.location);
@@ -56,6 +61,12 @@ function App() {
 
     return (
         <Router>
+            <AnimatePresence>
+                {showSplash && (
+                    <SplashScreen onFinish={() => setShowSplash(false)} />
+                )}
+            </AnimatePresence>
+
             <div className="min-h-screen bg-[#121212] text-gray-100 relative w-full overflow-x-hidden">
 
                 {/* Background animation */}
@@ -85,7 +96,7 @@ function App() {
                             openMenuButtonColor="#fff"
                             changeMenuColorOnOpen={true}
                             colors={['#1a1a1a', '#0a0a0a']}
-                            logoUrl=""
+                            logoUrl="/logo.png"
                             accentColor="#5227FF"
                             isFixed={true}
                         />
@@ -121,10 +132,9 @@ function App() {
                                     <Route path="*"              element={<Navigate to="/" />} />
                                 </Routes>
                             )}
-
                         </div>
                     </main>
-
+                    <InstallButton />
                 </div>
             </div>
         </Router>

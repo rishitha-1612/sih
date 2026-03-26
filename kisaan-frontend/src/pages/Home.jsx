@@ -117,7 +117,6 @@ export default function Home() {
                 <header className="mb-6 bg-black/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 shadow-2xl">
                     <h1 className="text-3xl font-extrabold text-white flex items-center">
                         Namaste, {user?.name?.split(' ')[0] || 'Farmer'}!
-                        <span className="ml-2">👋</span>
                     </h1>
                     <div className="flex items-center gap-2 mt-2 text-sm text-gray-400">
                         Here's your smart farm summary for
