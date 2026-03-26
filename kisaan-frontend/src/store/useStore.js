@@ -38,6 +38,10 @@ export const useStore = create(
 
             points: 0,
             addPoints: (pts) => set((state) => ({ points: state.points + pts })),
+
+            advisoryResult:      null,
+            setAdvisoryResult:   (res) => set({ advisoryResult: res }),
+            clearAdvisoryResult: () => set({ advisoryResult: null }),
         }),
         {
             name: 'kisaan-storage', // unique name

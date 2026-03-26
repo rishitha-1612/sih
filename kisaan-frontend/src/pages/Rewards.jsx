@@ -1,124 +1,297 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { Award, Gift, ChevronRight, Zap, CheckCircle2 } from 'lucide-react';
+import { ShoppingCart, Leaf, FlaskConical, Bug, Droplets, Sprout, ExternalLink, Star } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// =============================================
+// PRODUCT DATABASE
+// =============================================
+
+// Recommended products per crop (fallback if no advisory result)
+const CROP_RECOMMENDATIONS = {
+    Rice:      ['Urea', 'DAP', 'Zinc Sulphate', 'Chlorpyrifos'],
+    Wheat:     ['Urea', 'DAP', 'Potash', 'Thiram'],
+    Cotton:    ['NPK 20-20-0', 'Potash', 'Imidacloprid', 'Neem Oil'],
+    Tomato:    ['NPK 19-19-19', 'Calcium Nitrate', 'Mancozeb', 'Neem Oil'],
+    Potato:    ['Urea', 'SSP', 'Potash', 'Metalaxyl'],
+    Maize:     ['Urea', 'DAP', 'Zinc Sulphate', 'Atrazine'],
+    Soybean:   ['DAP', 'Potash', 'Rhizobium', 'Chlorpyrifos'],
+    Sugarcane: ['Urea', 'SSP', 'Potash', 'Carbofuran'],
+    Onion:     ['Urea', 'SSP', 'Potash', 'Mancozeb'],
+    default:   ['Urea', 'DAP', 'Neem Oil', 'NPK 20-20-0']
+};
+
+// Full product catalog
+const ALL_PRODUCTS = [
+    // Fertilizers
+    { id: 1,  name: 'Urea (50kg)',                  category: 'Fertilizer', price: 266,  rating: 4.5, image: '🌱', tag: 'Urea',         amazonQuery: 'urea fertilizer 50kg',          flipkartQuery: 'urea fertilizer agriculture' },
+    { id: 2,  name: 'DAP Fertilizer (50kg)',         category: 'Fertilizer', price: 1350, rating: 4.7, image: '💊', tag: 'DAP',          amazonQuery: 'DAP fertilizer 50kg',           flipkartQuery: 'DAP fertilizer' },
+    { id: 3,  name: 'NPK 20-20-0 (50kg)',            category: 'Fertilizer', price: 1100, rating: 4.3, image: '🧪', tag: 'NPK 20-20-0',  amazonQuery: 'NPK 20-20-0 fertilizer',        flipkartQuery: 'NPK fertilizer agriculture' },
+    { id: 4,  name: 'NPK 19-19-19 (1kg)',            category: 'Fertilizer', price: 340,  rating: 4.6, image: '🧪', tag: 'NPK 19-19-19', amazonQuery: 'NPK 19-19-19 water soluble',    flipkartQuery: 'NPK 19-19-19 fertilizer' },
+    { id: 5,  name: 'Potash MOP (50kg)',             category: 'Fertilizer', price: 1800, rating: 4.4, image: '🪨', tag: 'Potash',        amazonQuery: 'muriate of potash fertilizer',  flipkartQuery: 'potash fertilizer 50kg' },
+    { id: 6,  name: 'SSP Fertilizer (50kg)',         category: 'Fertilizer', price: 400,  rating: 4.2, image: '⚗️', tag: 'SSP',          amazonQuery: 'single super phosphate 50kg',   flipkartQuery: 'SSP fertilizer agriculture' },
+    { id: 7,  name: 'Zinc Sulphate (25kg)',          category: 'Fertilizer', price: 900,  rating: 4.5, image: '🔬', tag: 'Zinc Sulphate', amazonQuery: 'zinc sulphate fertilizer 25kg', flipkartQuery: 'zinc sulphate agriculture' },
+    { id: 8,  name: 'Calcium Nitrate (25kg)',        category: 'Fertilizer', price: 1200, rating: 4.6, image: '🧊', tag: 'Calcium Nitrate',amazonQuery: 'calcium nitrate fertilizer',   flipkartQuery: 'calcium nitrate agriculture' },
+    // Pesticides
+    { id: 9,  name: 'Neem Oil Pesticide (500ml)',    category: 'Pesticide',  price: 299,  rating: 4.8, image: '🌿', tag: 'Neem Oil',      amazonQuery: 'neem oil pesticide 500ml',      flipkartQuery: 'neem oil pesticide agriculture' },
+    { id: 10, name: 'Chlorpyrifos 20% EC (1L)',      category: 'Pesticide',  price: 450,  rating: 4.3, image: '🪲', tag: 'Chlorpyrifos',  amazonQuery: 'chlorpyrifos 20 EC insecticide',flipkartQuery: 'chlorpyrifos insecticide' },
+    { id: 11, name: 'Imidacloprid 17.8% SL (250ml)',category: 'Pesticide',  price: 380,  rating: 4.4, image: '🐛', tag: 'Imidacloprid',  amazonQuery: 'imidacloprid 17.8 insecticide', flipkartQuery: 'imidacloprid insecticide' },
+    { id: 12, name: 'Mancozeb 75% WP (500g)',        category: 'Fungicide',  price: 260,  rating: 4.5, image: '🍄', tag: 'Mancozeb',      amazonQuery: 'mancozeb 75 WP fungicide',      flipkartQuery: 'mancozeb fungicide agriculture' },
+    { id: 13, name: 'Metalaxyl 35% WS (100g)',       category: 'Fungicide',  price: 320,  rating: 4.2, image: '🧫', tag: 'Metalaxyl',     amazonQuery: 'metalaxyl fungicide',           flipkartQuery: 'metalaxyl fungicide' },
+    { id: 14, name: 'Thiram 75% WP (500g)',          category: 'Fungicide',  price: 280,  rating: 4.3, image: '🧫', tag: 'Thiram',        amazonQuery: 'thiram 75 WP fungicide',        flipkartQuery: 'thiram fungicide agriculture' },
+    // Seeds
+    { id: 15, name: 'Hybrid Tomato Seeds (10g)',     category: 'Seeds',      price: 150,  rating: 4.7, image: '🍅', tag: 'Tomato Seeds',  amazonQuery: 'hybrid tomato seeds',           flipkartQuery: 'hybrid tomato seeds agriculture' },
+    { id: 16, name: 'BT Cotton Seeds (450g)',        category: 'Seeds',      price: 930,  rating: 4.5, image: '🌾', tag: 'Cotton Seeds',  amazonQuery: 'BT cotton seeds',               flipkartQuery: 'bt cotton seeds' },
+    { id: 17, name: 'Rhizobium Biofertilizer',       category: 'Biofertilizer',price: 120,rating: 4.6, image: '🦠', tag: 'Rhizobium',     amazonQuery: 'rhizobium biofertilizer',       flipkartQuery: 'rhizobium biofertilizer soybean' },
+    // Tools
+    { id: 18, name: 'Hand Trowel & Pruner Set',      category: 'Tools',      price: 349,  rating: 4.4, image: '🔧', tag: 'Tools',         amazonQuery: 'hand trowel pruner set garden', flipkartQuery: 'garden trowel pruner set' },
+    { id: 19, name: 'Knapsack Sprayer (16L)',         category: 'Tools',      price: 1299, rating: 4.6, image: '💧', tag: 'Sprayer',       amazonQuery: 'knapsack sprayer 16 litre',     flipkartQuery: 'knapsack sprayer agriculture' },
+    { id: 20, name: 'Soil pH Testing Kit',           category: 'Tools',      price: 499,  rating: 4.5, image: '🧪', tag: 'Soil Test',     amazonQuery: 'soil pH testing kit agriculture',flipkartQuery: 'soil testing kit' },
+];
+
+const CATEGORY_ICONS = {
+    Fertilizer:    <FlaskConical size={14} />,
+    Pesticide:     <Bug size={14} />,
+    Fungicide:     <Droplets size={14} />,
+    Seeds:         <Sprout size={14} />,
+    Biofertilizer: <Leaf size={14} />,
+    Tools:         <ShoppingCart size={14} />
+};
+
+const CATEGORIES = ['All', 'Fertilizer', 'Pesticide', 'Fungicide', 'Seeds', 'Biofertilizer', 'Tools'];
+
+// =============================================
+// HELPERS
+// =============================================
+function getRecommendedProducts(advisoryFertilizer, crop) {
+    const tags = advisoryFertilizer
+        ? [advisoryFertilizer]
+        : (CROP_RECOMMENDATIONS[crop] || CROP_RECOMMENDATIONS.default);
+
+    return ALL_PRODUCTS.filter(p =>
+        tags.some(tag => p.tag.toLowerCase().includes(tag.toLowerCase()) || tag.toLowerCase().includes(p.tag.toLowerCase()))
+    ).slice(0, 4);
+}
+
+function buildAmazonUrl(query) {
+    return `https://www.amazon.in/s?k=${encodeURIComponent(query)}`;
+}
+
+function buildFlipkartUrl(query) {
+    return `https://www.flipkart.com/search?q=${encodeURIComponent(query)}`;
+}
+
+// =============================================
+// PRODUCT CARD
+// =============================================
+function ProductCard({ product, highlight = false }) {
+    return (
+        <div className={`rounded-2xl border p-4 flex flex-col gap-3 transition-all hover:scale-[1.02] ${
+            highlight
+                ? 'bg-green-500/10 border-green-500/30'
+                : 'bg-[#121418] border-gray-800'
+        }`}>
+            {/* Image / Emoji */}
+            <div className={`text-4xl w-14 h-14 flex items-center justify-center rounded-xl ${
+                highlight ? 'bg-green-500/20' : 'bg-gray-800'
+            }`}>
+                {product.image}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                        highlight
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-gray-700 text-gray-400'
+                    }`}>
+                        {CATEGORY_ICONS[product.category]}
+                        {product.category}
+                    </span>
+                    {highlight && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">
+                            ⭐ Recommended
+                        </span>
+                    )}
+                </div>
+                <h3 className="text-sm font-bold text-white leading-tight">{product.name}</h3>
+                <div className="flex items-center gap-1 mt-1">
+                    <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                    <span className="text-xs text-gray-400">{product.rating}</span>
+                </div>
+            </div>
+
+            {/* Price + Buy */}
+            <div className="flex items-center justify-between">
+                <span className="text-lg font-black text-white">₹{product.price}</span>
+                <div className="flex gap-2">
+                    <a
+                        href={buildAmazonUrl(product.amazonQuery)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FF9900] text-black hover:opacity-90 transition"
+                    >
+                        Amazon <ExternalLink size={10} />
+                    </a>
+                    <a
+                        href={buildFlipkartUrl(product.flipkartQuery)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#2874F0] text-white hover:opacity-90 transition"
+                    >
+                        Flipkart <ExternalLink size={10} />
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// =============================================
+// MAIN PAGE
+// =============================================
 export default function Rewards() {
-    const { points, addPoints } = useStore();
-    const [redeemedMsg, setRedeemedMsg] = useState(false);
-    const [redeemedItems, setRedeemedItems] = useState([]);
+    const user = useStore(state => state.user);
 
-    const rewards = [
-        { icon: <Award className="text-amber-500" size={24} />, title: "Ask Kisaan AI", pts: "+20 pts" },
-        { icon: <Zap className="text-blue-500" size={24} />, title: "Daily Login", pts: "+1 pt" },
-        { icon: <Award className="text-green-500" size={24} />, title: "Crop Scan", pts: "+10 pts" },
-    ]
+    const storeAdvisory = useStore(state => state.advisoryResult);
+    const [advisoryFertilizer, setAdvisoryFertilizer] = useState(storeAdvisory?.fertilizer || null);
+    const [activeCategory, setActiveCategory]         = useState('All');
+    const [searchQuery, setSearchQuery]               = useState('');
 
-    const catalog = [
-        { id: 1, name: "Urea Fertilizer (10kg)", price: 300, pointsReq: 200 },
-        { id: 2, name: "Hybrid Tomato Seeds", price: 150, pointsReq: 100 },
-        { id: 3, name: "Organic Neem Oil (500ml)", price: 450, pointsReq: 300 },
-        { id: 4, name: "Hand Trowel & Pruner", price: 800, pointsReq: 500 },
-    ];
+    const crop = user?.crop_type || user?.crop || '';
 
-    const getDiscountedPrice = (price) => {
-        // Give them a random-looking discount but consistently less than 20%
-        // E.g., 15% discount
-        const discountPercentage = 0.15;
-        return Math.floor(price * (1 - discountPercentage));
-    };
-
-    const handleRedeemItem = (item) => {
-        if (points >= item.pointsReq) {
-            addPoints(-item.pointsReq);
-            setRedeemedItems([...redeemedItems, item.id]);
-            setRedeemedMsg(`Successfully redeemed a coupon for ${item.name}! (Offline mode)`);
-            setTimeout(() => setRedeemedMsg(false), 3000);
+    // =============================================
+    // FETCH LATEST ADVISORY RESULT
+    // =============================================
+    useEffect(() => {
+        if (!storeAdvisory) {
+            setAdvisoryFertilizer(null);
         } else {
-            alert(`Not enough points! You need ${item.pointsReq} points for ${item.name}.`);
+            setAdvisoryFertilizer(storeAdvisory.fertilizer);
         }
-    };
+
+        const fetchAdvisory = async () => {
+            if (storeAdvisory) return; // Skip fetch if we already have it in store
+            try {
+                const userId = user?._id || user?.id;
+                if (!userId) return;
+                const res  = await fetch(`${API_URL}/api/advisory/latest/${userId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data?.fertilizer) setAdvisoryFertilizer(data.fertilizer);
+            } catch {
+                // silently fall back to crop-based
+            }
+        };
+        if (user) fetchAdvisory();
+    }, [user, storeAdvisory]); // Re-fetch or sync when store changes
+
+    const recommendedProducts = getRecommendedProducts(advisoryFertilizer, crop);
+
+    const allFiltered = ALL_PRODUCTS
+        .filter(p => !recommendedProducts.find(r => r.id === p.id)) // exclude already recommended
+        .filter(p => activeCategory === 'All' || p.category === activeCategory)
+        .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                     p.category.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
-        <div className="py-6 px-4 bg-gray-50 dark:bg-gray-900 min-h-screen">
-            <div className="flex flex-col items-center mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
-                <div className="w-24 h-24 bg-gradient-to-br from-yellow-300 to-amber-500 rounded-full flex items-center justify-center shadow-lg mb-4 ring-4 ring-amber-100 dark:ring-amber-900/50">
-                    <Gift size={48} className="text-white" />
-                </div>
-                <h1 className="text-4xl font-black text-gray-900 dark:text-white drop-shadow-sm">{points}</h1>
-                <p className="font-semibold text-gray-600 dark:text-gray-400 mt-1 uppercase tracking-widest text-sm">Total Kisaan Points</p>
-            </div>
+        <div className="min-h-screen bg-transparent pb-24 text-gray-100 font-sans">
+            <div className="w-full max-w-2xl mx-auto px-4 pt-6">
 
-            <div className="mb-6">
-                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">How to earn points</h2>
-                <div className="space-y-3">
-                    {rewards.map((reward, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                            <div className="flex items-center">
-                                <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded-lg mr-3">
-                                    {reward.icon}
-                                </div>
-                                <h3 className="font-medium text-gray-900 dark:text-white">{reward.title}</h3>
-                            </div>
-                            <span className="font-bold text-kisaan-600 dark:text-kisaan-400 bg-kisaan-50 dark:bg-kisaan-900/50 px-3 py-1 rounded-full text-sm">
-                                {reward.pts}
+                {/* Page Header */}
+                <header className="mb-8">
+                    <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
+                        <ShoppingCart className="text-green-400" size={28} />
+                        Agri Shop
+                    </h1>
+                    <p className="text-gray-400 text-sm mt-1">
+                        Fertilizers, pesticides, seeds & tools — buy on Amazon or Flipkart
+                    </p>
+                </header>
+
+                {/* =============================================
+                    SECTION 1 — RECOMMENDED
+                ============================================= */}
+                <section className="mb-10">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Leaf className="text-green-400" size={18} />
+                        <h2 className="text-lg font-bold text-white">
+                            {advisoryFertilizer
+                                ? `Recommended for your Advisory`
+                                : `Recommended for ${crop || 'your crop'}`
+                            }
+                        </h2>
+                        {advisoryFertilizer && (
+                            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-bold">
+                                Based on {advisoryFertilizer}
                             </span>
+                        )}
+                    </div>
+
+                    {recommendedProducts.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {recommendedProducts.map(product => (
+                                <ProductCard key={product.id} product={product} highlight />
+                            ))}
                         </div>
-                    ))}
-                </div>
-            </div>
+                    ) : (
+                        <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 text-center text-gray-400 text-sm">
+                            Complete the Crop Advisory to get personalized product recommendations.
+                        </div>
+                    )}
+                </section>
 
-            {redeemedMsg && (
-                <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative flex items-center" role="alert">
-                    <CheckCircle2 className="mr-2 flex-shrink-0" size={20} />
-                    <span className="block sm:inline">{redeemedMsg}</span>
-                </div>
-            )}
+                {/* =============================================
+                    SECTION 2 — ALL PRODUCTS
+                ============================================= */}
+                <section>
+                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <ShoppingCart className="text-gray-400" size={18} />
+                        All Agriculture Products
+                    </h2>
 
-            <div className="mb-4">
-                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">Redeem Rewards</h2>
-                <div className="grid grid-cols-1 gap-4">
-                    {catalog.map((item) => {
-                        const discountedPrice = getDiscountedPrice(item.price);
-                        const canAfford = points >= item.pointsReq;
-                        const hasRedeemed = redeemedItems.includes(item.id);
-                        return (
-                            <div key={item.id} className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div className="flex-1 pr-4">
-                                        <h3 className="font-bold text-gray-900 dark:text-white text-sm">{item.name}</h3>
-                                        <div className="mt-1 flex items-baseline gap-2">
-                                            <span className="text-lg font-black text-kisaan-600 dark:text-kisaan-400">₹{discountedPrice}</span>
-                                            <span className="text-xs text-gray-400 line-through">₹{item.price}</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold px-2 py-1 rounded-lg">
-                                        {item.pointsReq} Pts
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    {hasRedeemed ? (
-                                        <button
-                                            onClick={() => {
-                                                setRedeemedMsg(`Redirecting to payment gateway to buy ${item.name} for ₹${discountedPrice}...`);
-                                                setTimeout(() => setRedeemedMsg(false), 3000);
-                                            }}
-                                            className="flex-1 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
-                                        >
-                                            Buy for ₹{discountedPrice}
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleRedeemItem(item)}
-                                            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm ${canAfford ? 'bg-kisaan-600 text-white hover:bg-kisaan-700' : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'}`}
-                                        >
-                                            Redeem (Pts)
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
+                    {/* Search */}
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search products..."
+                        className="w-full mb-4 px-4 py-3 rounded-xl bg-[#121418] border border-gray-700 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+                    />
+
+                    {/* Category Filter */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+                        {CATEGORIES.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setActiveCategory(cat)}
+                                className={`whitespace-nowrap text-xs font-bold px-4 py-2 rounded-full transition-all flex-shrink-0 ${
+                                    activeCategory === cat
+                                        ? 'bg-green-500 text-white'
+                                        : 'bg-[#121418] border border-gray-700 text-gray-400 hover:border-green-500'
+                                }`}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Product Grid */}
+                    {allFiltered.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {allFiltered.map(product => (
+                                <ProductCard key={product.id} product={product} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-500 py-10">
+                            No products found.
+                        </div>
+                    )}
+                </section>
+
             </div>
         </div>
     );

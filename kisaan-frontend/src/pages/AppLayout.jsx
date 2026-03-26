@@ -1,4 +1,4 @@
-import Squares from '../components/Squares';
+import ShapeGrid from '../components/ShapeGrid';
 
 export default function AppLayout({ children }) {
     return (
@@ -6,12 +6,14 @@ export default function AppLayout({ children }) {
 
             {/* Background animation */}
             <div className="fixed inset-0 z-0 pointer-events-none">
-                <Squares
+                <ShapeGrid
                     speed={0.5}
                     squareSize={40}
                     direction="diagonal"
                     borderColor="#271E37"
-                    hoverFillColor="#222222"
+                    hoverFillColor="#1aa210"
+                    shape="hexagon"
+                    hoverTrailAmount={4}
                 />
             </div>
 
