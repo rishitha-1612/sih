@@ -2,13 +2,74 @@ const express    = require('express');
 const router     = express.Router();
 const { spawn }  = require('child_process');
 const path       = require('path');
+const fs         = require('fs');
 const Advisory   = require('../models/Advisory');
+
+function pickCrop(body = {}) {
+    return (
+        body.crop ||
+        body.crop_type ||
+        body.cropType ||
+        body['Crop Type'] ||
+        body.CropType ||
+        ''
+    )
+        .toString()
+        .trim()
+        .toLowerCase();
+}
+
+function fallbackAdvisory(body = {}) {
+    const crop = pickCrop(body);
+    const csvPath = path.join(__dirname, '../ai_models/advisory/data/fertilizer.csv');
+    if (!fs.existsSync(csvPath)) {
+        return {
+            fertilizer: 'General NPK recommendation unavailable (fallback data missing).',
+            confidence: 0
+        };
+    }
+
+    const rows = fs
+        .readFileSync(csvPath, 'utf8')
+        .split(/\r?\n/)
+        .slice(1)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => line.split(','));
+
+    const match = rows.find((cols) => (cols[1] || '').toLowerCase() === crop);
+    if (!match) {
+        return {
+            fertilizer: 'Apply a balanced NPK fertilizer as per local soil test. (Fallback mode)',
+            confidence: 35
+        };
+    }
+
+    const n = match[2];
+    const p = match[3];
+    const k = match[4];
+    return {
+        fertilizer: `Recommended ratio for ${match[1]}: N:${n}, P:${p}, K:${k} (fallback mode)`,
+        confidence: 55
+    };
+}
 
 // =============================================
 // POST /recommend — run ML model
 // =============================================
 router.post('/recommend', async (req, res) => {
     const scriptPath = path.join(__dirname, '../ai_models/advisory/predict.py');
+    const modelDir = path.join(__dirname, '../ai_models/advisory/models');
+    const classifierPath = path.join(modelDir, 'classifier.pkl');
+    const encoderPath = path.join(modelDir, 'fertilizer_encoder.pkl');
+
+    if (!fs.existsSync(classifierPath) || !fs.existsSync(encoderPath)) {
+        const result = fallbackAdvisory(req.body);
+        return res.json({
+            ...result,
+            note: 'ML model files missing (classifier.pkl, fertilizer_encoder.pkl). Returned CSV-based fallback advisory.'
+        });
+    }
 
     const pythonProcess = spawn('python', [
         scriptPath,

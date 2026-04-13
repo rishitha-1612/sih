@@ -18,6 +18,7 @@ export const StaggeredMenu = ({
     changeMenuColorOnOpen = true,
     isFixed = false,
     closeOnClickAway = true,
+    menuFooter,
     onMenuOpen,
     onMenuClose
 }) => {
@@ -422,6 +423,7 @@ export const StaggeredMenu = ({
                             </li>
                         )}
                     </ul>
+                    {menuFooter && <div className="mt-4">{menuFooter}</div>}
                     {displaySocials && socialItems && socialItems.length > 0 && (
                         <div className="sm-socials" aria-label="Social links">
                             <h3 className="sm-socials-title">Socials</h3>

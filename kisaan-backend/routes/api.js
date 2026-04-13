@@ -31,6 +31,7 @@ async function getOrCreateUser(user_id) {
             _id:      user_id,
             name:     'Demo Farmer',
             phone:    `demo-${Date.now()}`,
+            password: 'demo-user-password',
             language: 'en',
             location: 'Unknown',
             crop_type:'Unknown',
@@ -72,7 +73,7 @@ async function addDailyPoints(user) {
 // 1. POST /register
 // =============================================
 router.post('/register', async (req, res) => {
-    const { phone, name, language, location, crop_type, soil_type } = req.body;
+    const { phone, name, language, location, crop_type, soil_type, password } = req.body;
 
     try {
         const existing = await User.findOne({ phone });
@@ -82,6 +83,7 @@ router.post('/register', async (req, res) => {
 
         const user = await User.create({
             phone, name, language, location, crop_type, soil_type,
+            password: password || 'demo-user-password',
             points: 10
         });
 

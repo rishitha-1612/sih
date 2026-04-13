@@ -12,10 +12,8 @@ export default function useInstallPrompt() {
     const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
     
     setIsIOS(isIOSDevice && isSafari);
-    console.log('useInstallPrompt: isIOS check', { isIOSDevice, isSafari });
 
     const handler = (e) => {
-      console.log('useInstallPrompt: beforeinstallprompt event fired!');
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
@@ -28,7 +26,6 @@ export default function useInstallPrompt() {
     window.addEventListener('appinstalled', () => {
       setIsInstallable(false);
       setDeferredPrompt(null);
-      console.log('PWA was installed');
     });
 
     return () => {
@@ -43,8 +40,7 @@ export default function useInstallPrompt() {
     deferredPrompt.prompt();
 
     // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
+    await deferredPrompt.userChoice;
 
     // We've used the prompt, and can't use it again, throw it away
     setDeferredPrompt(null);

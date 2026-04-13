@@ -99,6 +99,7 @@ function App() {
                             logoUrl="/logo.png"
                             accentColor="#5227FF"
                             isFixed={true}
+                            menuFooter={<InstallButton mode="menu" />}
                         />
                     )}
 
@@ -134,7 +135,6 @@ function App() {
                             )}
                         </div>
                     </main>
-                    <InstallButton />
                 </div>
             </div>
         </Router>

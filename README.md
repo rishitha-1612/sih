@@ -1,61 +1,123 @@
-# KisaanKonnect — Smart Agriculture Assistant
+# KisaanKonnect - Smart Agriculture Assistant
 
-KisaanKonnect is a comprehensive digital platform designed to empower farmers with AI-driven insights, real-time market data, and expert agricultural advice.
+KisaanKonnect is a digital agriculture platform built to support farmers with AI-driven insights, crop guidance, disease detection, market awareness, and an offline knowledge-based chatbot.
 
 ## Project Structure
 
-The project is divided into three main components:
-
-- **`kisaan-frontend/`**: A modern React.js application built with Vite and Tailwind CSS.
-- **`kisaan-backend/`**: A Node.js and Express backend handling user authentication, data management, and integration.
-- **`kisaan-llm-service/`**: A Python-based FastAPI service providing offline RAG (Retrieval-Augmented Generation) capabilities for the chatbot.
+- **`kisaan-frontend/`**: React application built with Vite.
+- **`kisaan-backend/`**: Node.js and Express backend for APIs, auth, and app data.
+- **`kisaan-llm-service/`**: Python offline RAG service for agriculture question answering using PDF documents, FAISS, HuggingFace embeddings, and Ollama Gemma.
 
 ## Core Features
 
-1.  **Crop Advisory**: Personalized fertilizer and crop recommendations based on soil parameters and weather.
-2.  **Disease Detection**: AI-powered leaf disease identification using a custom CNN model.
-3.  **Kisaan Mitra AI**: A smart chatbot for general farming queries (offline RAG).
-4.  **Market Trends**: Real-time mandi prices and market trends for various crops.
-5.  **Government Schemes**: Information on agricultural schemes like PMFBY.
+1. **Crop Advisory**: Personalized fertilizer and crop recommendations.
+2. **Disease Detection**: AI-based plant disease prediction from images.
+3. **Kisaan Mitra AI**: Offline RAG chatbot grounded in agriculture PDFs.
+4. **Market Trends**: Crop market and mandi-related information.
+5. **Government Schemes**: Farmer-focused scheme awareness and support.
 
-## Getting Started
-
-### Prerequisites
+## Prerequisites
 
 - **Node.js**: v18 or higher
 - **Python**: v3.10 or higher
-- **Package Managers**: npm, pip
+- **Package Managers**: `npm`, `pip`
+- **MongoDB**: running and reachable from `kisaan-backend/.env` (`MONGO_URI`)
+- **Ollama**: installed locally
 
-### Installation & Setup
+## One-Time Setup
 
-#### 1. Frontend Setup
+### 1) Install Python dependencies (root)
+
 ```bash
-cd kisaan-frontend
-npm install
-npm run dev
+cd Kisaan-Konnect
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-#### 2. Backend Setup
+### 2) Install Node dependencies
+
 ```bash
 cd kisaan-backend
 npm install
-# Configure .env with your MongoDB URI if applicable
+
+cd ..\kisaan-frontend
+npm install
+```
+
+### 3) Prepare Ollama model
+
+Current default in RAG service:
+
+```bash
+set OLLAMA_MODEL=gemma4:31b-cloud
+```
+
+If you want local inference on low-memory machines, use:
+
+```bash
+ollama pull gemma3:1b
+set OLLAMA_MODEL=gemma3:1b
+```
+
+## Run the App (3 terminals)
+
+### Terminal A - LLM service (FastAPI RAG)
+
+```bash
+cd Kisaan-Konnect
+.venv\Scripts\activate
+cd kisaan-llm-service
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### Terminal B - Backend (Express)
+
+```bash
+cd Kisaan-Konnect\kisaan-backend
 npm run dev
 ```
 
-#### 3. AI (LLM) Service Setup
+### Terminal C - Frontend (Vite)
+
 ```bash
-cd kisaan-llm-service
-pip install -r requirements.txt
-python -m uvicorn main:app --port 8000
+cd Kisaan-Konnect\kisaan-frontend
+npm run dev
 ```
 
-## Technical Details
+If PowerShell blocks `npm`, use:
 
-- **Frontend**: React 19, Vite, Zustand (State), Lucide (Icons), Framer Motion (Animations).
-- **Backend**: Node.js, Express, MongoDB/Mongoose, Multer (Image Uploads).
-- **AI Service**: FastAPI, FAISS (Vector DB), HuggingFace (Embeddings), Flan-T5 (LLM).
+```bash
+npm.cmd run dev
+```
+
+## Quick Health Checks
+
+- LLM health: `http://127.0.0.1:8000/health`
+- Backend health: `http://127.0.0.1:5000/health`
+- Frontend: usually `http://127.0.0.1:5173`
+
+## RAG Behavior Notes
+
+1. Place one or more agriculture PDFs inside `kisaan-llm-service/data/`.
+2. Service tries FAISS + sentence-transformer retrieval first.
+3. If embedding download is blocked, it falls back to offline keyword retrieval.
+4. If Ollama model is unavailable / too large for RAM, the API still responds with retrieved context plus a note.
+5. To rebuild vectors after PDF updates, delete `kisaan-llm-service/vectorstore/`.
+
+## Technical Stack
+
+- **Frontend**: React, Vite, Zustand
+- **Backend**: Node.js, Express, MongoDB/Mongoose
+- **AI Service**: Python, FastAPI, LangChain, FAISS, Ollama
+
+## Notes
+
+- Backend now waits for MongoDB before accepting requests.
+- `/api/chat` and `/api/upload-image` both depend on LLM service at `http://localhost:8000`.
+- `/analyze-image` in LLM service is a compatibility stub for the chat image-upload flow.
+- If advisory ML `.pkl` files are missing, `/api/advisory/recommend` now returns a CSV-based fallback recommendation instead of crashing.
 
 ## License
 
-This project is developed for educational purposes and smart agriculture initiatives.
+This project is intended for educational and smart agriculture use cases.

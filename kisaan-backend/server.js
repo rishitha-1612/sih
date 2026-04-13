@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 process.env.PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION = 'python';
 
 const express = require('express');
@@ -18,8 +18,6 @@ const advisoryRoutes = require('./routes/advisory');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-connectDB();
 
 app.use(cors());
 app.use(express.json());
@@ -54,6 +52,16 @@ app.use((err, req, res, next) => {
   next();
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+async function startServer() {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

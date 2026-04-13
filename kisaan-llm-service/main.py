@@ -1,43 +1,39 @@
-"""
-main.py — FastAPI server
-Handles: HTTP endpoints, CORS, startup/shutdown
-RAG logic lives in ragbot.py
-"""
+from __future__ import annotations
 
-import json
-import re
-from contextlib import asynccontextmanager
+from typing import List, Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, Field
 
-from ragbot import init_rag, ask
+from rag import ask_from_messages
 
-# =============================================
-# STARTUP / SHUTDOWN
-# =============================================
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print("[Kisaan AI] Server starting — initializing RAG pipeline...")
-    try:
-        init_rag()
-        print("[Kisaan AI] Server is ready and accepting requests.")
-    except Exception as e:
-        print(f"[Kisaan AI] WARNING: Could not initialize RAG pipeline: {e}")
-    yield
-    print("[Kisaan AI] Server shutting down.")
 
-# =============================================
-# APP
-# =============================================
-app = FastAPI(
-    title="Kisaan Mitra AI (RAG)",
-    description="Offline FastAPI RAG service — FAISS + Flan-T5. No API keys needed.",
-    version="3.0.0",
-    lifespan=lifespan
-)
+class ChatMessage(BaseModel):
+    role: Literal["system", "user", "assistant"] = "user"
+    content: str = Field(default="")
+
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage] = Field(default_factory=list)
+    language: str | None = None
+
+
+class ChatResponse(BaseModel):
+    reply: str
+
+
+class ImageAnalysisRequest(BaseModel):
+    image_base64: str
+
+
+class ImageAnalysisResponse(BaseModel):
+    diseasePredicted: str
+    confidence: str
+    treatment: str
+
+
+app = FastAPI(title="Kisaan LLM Service", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -47,70 +43,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =============================================
-# PYDANTIC MODELS
-# Same shape as before — api.js unchanged
-# =============================================
-class ChatMessage(BaseModel):
-    role: str
-    content: str
 
-class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
-    language: str = "en"
-
-class ChatResponse(BaseModel):
-    reply: str
-
-class ImageAnalysisRequest(BaseModel):
-    image_base64: str
-
-class ImageAnalysisResponse(BaseModel):
-    diseasePredicted: str
-    confidence: str
-    treatment: str
-
-# =============================================
-# ENDPOINTS
-# =============================================
 @app.get("/")
-def root():
-    return {"status": "ok", "model": "flan-t5-small + FAISS RAG"}
+def root() -> dict:
+    return {"status": "ok", "service": "kisaan-llm-rag"}
+
 
 @app.get("/health")
-def health():
+def health() -> dict:
     return {"status": "ok"}
 
+
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+def chat(payload: ChatRequest) -> ChatResponse:
     try:
-        # Extract latest user message
-        user_message = ""
-        for msg in reversed(request.messages):
-            if msg.role == "user":
-                user_message = msg.content
-                break
-
-        if not user_message:
-            raise HTTPException(status_code=400, detail="No user message found.")
-
-        reply = ask(user_message, language=request.language)
+        reply = ask_from_messages(
+            messages=[m.model_dump() for m in payload.messages],
+            language=payload.language,
+        )
         return ChatResponse(reply=reply)
-
-    except HTTPException:
-        raise
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"RAG error: {e}")
+    except FileNotFoundError:
+        return ChatResponse(
+            reply=(
+                "No local knowledge PDFs found. Add files to "
+                "`kisaan-llm-service/data/` and ask again."
+            )
+        )
+    except Exception as exc:
+        return ChatResponse(
+            reply=(
+                "RAG service is temporarily unavailable. "
+                f"Reason: {str(exc)}"
+            )
+        )
 
 
 @app.post("/analyze-image", response_model=ImageAnalysisResponse)
-async def analyze_image(request: ImageAnalysisRequest):
-    # Your CNN handles actual image analysis in PlantDiseaseDetection page.
-    # This stub keeps api.js from getting a 404.
+def analyze_image(_: ImageAnalysisRequest) -> ImageAnalysisResponse:
     return ImageAnalysisResponse(
-        diseasePredicted="Please use the Plant Disease Detection page",
+        diseasePredicted="Use Plant Disease Detection page",
         confidence="N/A",
-        treatment="Image analysis is handled by the CNN model in the Plant Disease Detection section."
+        treatment="Image analysis is handled by the CNN model endpoint in backend /api/detection/detect.",
     )
